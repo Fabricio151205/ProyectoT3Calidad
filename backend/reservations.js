@@ -63,14 +63,17 @@ function createReservation(req, res) {
     }
 
     const overlappingStudent = db.prepare(`
-      SELECT 1 FROM reservas
-      WHERE usuario_id = ? AND estado = 'APROBADA' AND inicio < ? AND fin > ?
-      LIMIT 1
+      SELECT estado FROM reservas
+      WHERE usuario_id = ? AND estado IN ('PENDIENTE', 'APROBADA')
+        AND inicio < ? AND fin > ?
+      ORDER BY CASE estado WHEN 'APROBADA' THEN 0 ELSE 1 END LIMIT 1
     `).get(req.user.id, schedule.end, schedule.start);
     if (overlappingStudent) {
       db.exec('ROLLBACK');
       inTransaction = false;
-      return res.status(409).json({ mensaje: 'Ya tienes otro equipo reservado en ese horario.' });
+      return res.status(409).json({ mensaje: overlappingStudent.estado === 'PENDIENTE'
+        ? 'Ya tienes una solicitud pendiente en ese horario.'
+        : 'Ya tienes otro equipo reservado en ese horario.' });
     }
 
     const result = db.prepare(`
@@ -96,7 +99,8 @@ function createReservation(req, res) {
 function listMyReservations(req, res) {
   const reservas = db.prepare(`
     SELECT r.id, r.equipo_id AS equipoId, e.nombre AS equipoNombre,
-      e.codigo AS equipoCodigo, r.inicio, r.fin, r.estado, r.creado_en AS creadoEn
+      e.codigo AS equipoCodigo, r.inicio, r.fin, r.estado,
+      r.motivo_rechazo, r.creado_en AS creadoEn
     FROM reservas r JOIN equipos e ON e.id = r.equipo_id
     WHERE r.usuario_id = ? ORDER BY r.creado_en DESC, r.id DESC
   `).all(req.user.id);

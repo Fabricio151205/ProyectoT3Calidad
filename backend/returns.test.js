@@ -6,13 +6,13 @@ const path = require('node:path');
 
 const testDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-returns-test-'));
 process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
-const { db } = require('./db');
+const { db, hashPassword } = require('./db');
 const app = require('./server');
 
 function request(method, pathname, body = {}, cookie = '', params = {}) {
   const route = app.router.stack.find((layer) => layer.route?.path === pathname && layer.route.methods[method.toLowerCase()]);
   assert.ok(route, `Falta ${method} ${pathname}`);
-  const req = { body, params, query: {}, headers: { cookie } };
+  const req = { app, body, params, query: {}, headers: { cookie } };
   const result = { status: 200, body: null, cookie: '' };
   const res = {
     status(code) { result.status = code; return this; },
@@ -172,16 +172,37 @@ test('[HU-05][CP-029] un milisegundo después del fin acordado cuenta como retra
 });
 
 test('[HU-05][CP-030] devolver exactamente al fin acordado no cuenta como retraso', () => {
-  const student = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
-  const start = '2099-01-01T10:00:00Z';
-  const end = '2099-01-01T11:00:00Z';
+  const student = db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
+    VALUES ('Estudiante CP-030', 'cp030@labtrack.test', '20261001', ?, 'ESTUDIANTE')`)
+    .run(hashPassword('Estudiante123'));
+  const start = at(-60);
+  const end = at(60);
   const id = db.prepare(`
     INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado)
     VALUES (?, ?, ?, ?, 'APROBADA')
-  `).run(student.id, equipment[3].id, start, end).lastInsertRowid;
-  db.prepare("UPDATE reservas SET estado = 'DEVUELTA', devuelta_en = ? WHERE id = ?")
-    .run(end, id);
-  assert.equal(db.prepare('SELECT retraso FROM reservas WHERE id = ?').get(id).retraso, 0);
+  `).run(student.lastInsertRowid, equipment[3].id, start, end).lastInsertRowid;
+  const catalog = () => request('GET', '/api/equipos', {}, studentCookie).body
+    .find((item) => item.id === equipment[3].id);
+  assert.equal(catalog().estado, 'Prestado');
+  app.locals.returnClock = () => new Date(end);
+  let result;
+  try {
+    result = markReturned(id);
+  } finally {
+    delete app.locals.returnClock;
+  }
+  assert.equal(result.status, 200);
+  assert.equal(result.body.estado, 'DEVUELTA');
+  assert.equal(result.body.devueltaEn, new Date(end).toISOString());
+  assert.equal(result.body.retraso, false);
+  assert.equal(result.body.penalizacionAplicada, false);
+  const stored = db.prepare('SELECT estado, retraso, devuelta_en FROM reservas WHERE id = ?').get(id);
+  assert.equal(stored.estado, 'DEVUELTA');
+  assert.equal(stored.retraso, 0);
+  assert.equal(stored.devuelta_en, new Date(end).toISOString());
+  assert.equal(db.prepare('SELECT estado_estudiante FROM usuarios WHERE id = ?')
+    .get(student.lastInsertRowid).estado_estudiante, 'REGULAR');
+  assert.equal(catalog().estado, 'Disponible');
 });
 
 test.after(() => {

@@ -7,7 +7,7 @@ const path = require('node:path');
 const testDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-test-'));
 process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
 
-const { db } = require('./db');
+const { db, hashPassword } = require('./db');
 const app = require('./server');
 
 test('[HU-02][CP-007, CP-008] la ruta Express consulta los equipos guardados en SQLite', () => {
@@ -16,12 +16,33 @@ test('[HU-02][CP-007, CP-008] la ruta Express consulta los equipos guardados en 
   assert.equal(equipos.length, 18);
   assert.deepEqual(new Set(equipos.map((equipo) => equipo.categoria)),
     new Set(['Cómputo', 'Electrónica', 'Redes']));
-  assert.ok(equipos.every((equipo) => Object.keys(equipo).sort().join() === 'categoria,codigo,estado,id,imagen_url,nombre'));
+  assert.ok(equipos.every((equipo) => Object.keys(equipo).sort().join() === 'categoria,codigo,descripcion,estado,id,imagen_url,nombre'));
+  assert.ok(equipos.every((equipo) => equipo.descripcion.length > 25 &&
+    equipo.descripcion !== `Equipo de ${equipo.categoria}`));
   assert.ok(equipos.every((equipo) => /^\/equipos\/[a-z0-9-]+\.jpg$/.test(equipo.imagen_url) &&
     existsSync(path.join(__dirname, '..', 'frontend', 'public', equipo.imagen_url.slice(1)))));
   assert.ok(['Cómputo', 'Electrónica', 'Redes'].every((categoria) =>
     equipos.filter((equipo) => equipo.categoria === categoria).length === 6));
   assert.equal(request('GET', '/api/health').body.estado, 'OK');
+});
+
+test('[HU-02][Mejora] descripción genérica histórica se presenta con detalle sin cambiar el registro', () => {
+  const codigo = 'COMP-002';
+  const original = db.prepare('SELECT descripcion FROM equipos WHERE codigo = ?').get(codigo).descripcion;
+  const generic = 'Equipo de Cómputo';
+  db.prepare('UPDATE equipos SET descripcion = ? WHERE codigo = ?').run(generic, codigo);
+  try {
+    const equipo = request('GET', '/api/equipos', {}, studentCookie()).body
+      .find((item) => item.codigo === codigo);
+    assert.notEqual(equipo.descripcion, generic);
+    assert.equal(db.prepare('SELECT descripcion FROM equipos WHERE codigo = ?').get(codigo).descripcion, generic);
+    db.prepare('UPDATE equipos SET descripcion = ? WHERE codigo = ?').run('Descripción propia', codigo);
+    const personalizado = request('GET', '/api/equipos', {}, studentCookie()).body
+      .find((item) => item.codigo === codigo);
+    assert.equal(personalizado.descripcion, 'Descripción propia');
+  } finally {
+    db.prepare('UPDATE equipos SET descripcion = ? WHERE codigo = ?').run(original, codigo);
+  }
 });
 
 test('usuarios de prueba tienen roles y contraseñas cifradas', () => {
@@ -146,6 +167,41 @@ test('[HU-03][CP-018] rechaza que el estudiante tenga otro equipo aprobado al mi
   assert.match(response.body.mensaje, /otro equipo reservado/i);
 });
 
+test('[HU-03][CP-018] rechaza otra solicitud pendiente simultánea sin bloquear a otros estudiantes', () => {
+  const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
+  const another = db.prepare("SELECT id FROM equipos WHERE codigo = 'RED-001'").get();
+  const date = futureDate(9);
+  const first = reservationRequest(equipment.id, date, '10:00', '12:00');
+  assert.equal(first.status, 201);
+  const countBefore = db.prepare('SELECT count(*) AS total FROM reservas').get().total;
+  const conflict = reservationRequest(another.id, date, '11:00', '13:00');
+  assert.equal(conflict.status, 409);
+  assert.match(conflict.body.mensaje, /solicitud pendiente/i);
+  assert.equal(db.prepare('SELECT count(*) AS total FROM reservas').get().total, countBefore);
+
+  db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
+    VALUES ('Estudiante adicional', 'adicional@labtrack.test', 'QA-018', ?, 'ESTUDIANTE')`)
+    .run(hashPassword('Prueba018!'));
+  const otherCookie = request('POST', '/api/auth/login',
+    { codigo: 'QA-018', password: 'Prueba018!' }).cookie;
+  assert.equal(reservationRequest(equipment.id, date, '11:00', '13:00', otherCookie).status, 201);
+});
+
+test('[HU-03][CP-018] reservas rechazadas y devueltas no bloquean el horario', () => {
+  const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
+  const another = db.prepare("SELECT id FROM equipos WHERE codigo = 'RED-001'").get();
+  const date = futureDate(10);
+  const first = reservationRequest(equipment.id, date, '10:00', '12:00');
+  assert.equal(first.status, 201);
+  db.prepare("UPDATE reservas SET estado = 'RECHAZADA', motivo_rechazo = ? WHERE id = ?")
+    .run('Equipo en mantenimiento', first.body.id);
+  const second = reservationRequest(another.id, date, '11:00', '13:00');
+  assert.equal(second.status, 201);
+  db.prepare("UPDATE reservas SET estado = 'DEVUELTA', devuelta_en = ? WHERE id = ?")
+    .run(utc(date, '13:00'), second.body.id);
+  assert.equal(reservationRequest(equipment.id, date, '11:00', '13:00').status, 201);
+});
+
 test('[HU-03][CP-017, CP-019] permite horarios posteriores a reservas finalizadas', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
@@ -154,8 +210,23 @@ test('[HU-03][CP-017, CP-019] permite horarios posteriores a reservas finalizada
     .run(student.id, equipment.id, utc(date, '10:00'), utc(date, '12:00'));
   assert.equal(reservationRequest(equipment.id, date, '12:00', '13:00').status, 201);
   const anotherEquipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'RED-001'").get();
-  assert.equal(reservationRequest(anotherEquipment.id, date, '12:00', '13:00').status, 201);
-  assert.equal(reservationRequest(equipment.id, date, '12:30', '13:30').status, 201);
+  assert.equal(reservationRequest(anotherEquipment.id, date, '13:00', '14:00').status, 201);
+  assert.equal(reservationRequest(equipment.id, date, '14:00', '15:00').status, 201);
+});
+
+test('[HU-03][CP-015] un préstamo vigente bloquea su horario, pero permite uno posterior', () => {
+  const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'ELEC-002'").get();
+  const other = db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
+    VALUES ('Estudiante CP-015', 'cp015@labtrack.test', 'QA-015', ?, 'ESTUDIANTE')`)
+    .run(hashPassword('Prueba015!'));
+  const date = futureDate(11);
+  const start = new Date(Date.now() - 3_600_000).toISOString().slice(0, 19) + 'Z';
+  db.prepare("INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado) VALUES (?, ?, ?, ?, 'APROBADA')")
+    .run(other.lastInsertRowid, equipment.id, start, utc(date, '12:00'));
+  const catalog = request('GET', '/api/equipos', {}, studentCookie()).body;
+  assert.equal(catalog.find((item) => item.id === equipment.id).estado, 'Prestado');
+  assert.equal(reservationRequest(equipment.id, date, '10:00', '11:00').status, 409);
+  assert.equal(reservationRequest(equipment.id, date, '12:00', '13:00').status, 201);
 });
 
 test('[HU-03][Adicional] reserva y consulta propia requieren sesión de estudiante', () => {
@@ -179,6 +250,27 @@ test('[HU-03][Adicional] mis reservas no muestra solicitudes ajenas', () => {
   assert.equal(response.status, 200);
   assert.ok(response.body.some((item) => item.id === Number(own.lastInsertRowid)));
   assert.ok(response.body.every((item) => item.id !== Number(alien.lastInsertRowid)));
+});
+
+test('[HU-04][Mejora] mis reservas muestra solo el motivo de rechazos propios', () => {
+  const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
+  const other = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
+  const equipment = db.prepare('SELECT id FROM equipos LIMIT 1').get();
+  const date = futureDate(31);
+  const rejected = db.prepare(`INSERT INTO reservas
+    (usuario_id, equipo_id, inicio, fin, estado, motivo_rechazo)
+    VALUES (?, ?, ?, ?, 'RECHAZADA', ?)`)
+    .run(student.id, equipment.id, utc(date, '10:00'), utc(date, '11:00'), 'Equipo no apto para la práctica');
+  const alien = db.prepare(`INSERT INTO reservas
+    (usuario_id, equipo_id, inicio, fin, estado, motivo_rechazo)
+    VALUES (?, ?, ?, ?, 'RECHAZADA', ?)`)
+    .run(other.id, equipment.id, utc(date, '11:00'), utc(date, '12:00'), 'Motivo ajeno');
+  const response = request('GET', '/api/mis-reservas', {}, studentCookie());
+  assert.equal(response.status, 200);
+  assert.equal(response.body.find((item) => item.id === Number(rejected.lastInsertRowid)).motivo_rechazo,
+    'Equipo no apto para la práctica');
+  assert.ok(response.body.every((item) => item.id !== Number(alien.lastInsertRowid)));
+  assert.ok(response.body.every((item) => item.estado === 'RECHAZADA' || item.motivo_rechazo === null));
 });
 
 test('[HU-02][CP-009, CP-010, CP-011] catálogo filtra cada categoría exacta', () => {

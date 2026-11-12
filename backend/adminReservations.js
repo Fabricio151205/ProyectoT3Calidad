@@ -132,12 +132,13 @@ function registerReturn(req, res) {
     if (reservation.estado !== 'APROBADA' || reservation.devuelta_en !== null) {
       return { status: 409, body: { mensaje: 'La reserva no está aprobada o ya fue devuelta.' } };
     }
-    if (reservation.inicio > new Date().toISOString().slice(0, 19) + 'Z') {
+    // El reloj se puede sustituir desde el proceso de QA; nunca se lee del cliente HTTP.
+    const returnedAt = (req.app?.locals?.returnClock?.() ?? new Date()).toISOString();
+    if (reservation.inicio > returnedAt.slice(0, 19) + 'Z') {
       return { status: 409, body: { mensaje: 'El préstamo aún no ha comenzado.' } };
     }
 
     // UTC con milisegundos conserva el instante real; la interfaz lo muestra en Lima.
-    const returnedAt = new Date().toISOString();
     const update = db.prepare(`
       UPDATE reservas SET estado = 'DEVUELTA', devuelta_en = ?, actualizado_en = ?
       WHERE id = ? AND estado = 'APROBADA' AND devuelta_en IS NULL

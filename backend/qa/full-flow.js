@@ -66,6 +66,13 @@ async function main() {
     const competing = await request('POST', '/api/reservas', other, booking);
     assert.equal(competing.status, 201);
 
+    const simultaneousDay = new Date(Date.now() + 401 * 86_400_000).toISOString().slice(0, 10);
+    const simultaneous = await Promise.all([equipmentId, filtered.body[1].id].map((equipoId) =>
+      request('POST', '/api/reservas', student,
+        { equipoId, fecha: simultaneousDay, horaInicio: '10:00', horaFin: '11:00' })));
+    assert.deepEqual(simultaneous.map((result) => result.status).sort(), [201, 409]);
+    assert.match(simultaneous.find((result) => result.status === 409).body.mensaje, /solicitud pendiente/i);
+
     const adminLogin = await request('POST', '/api/auth/login', '',
       { codigo: 'ADM001', password: 'Admin123!' });
     assert.equal(adminLogin.status, 200);
@@ -102,6 +109,38 @@ async function main() {
     assert.equal((await request('PATCH', `/api/admin/reservas/${competing.body.id}/rechazar`, admin,
       { motivo: reason })).status, 200);
     assert.equal(db.prepare('SELECT motivo_rechazo FROM reservas WHERE id = ?').get(competing.body.id).motivo_rechazo, reason);
+    // CP-030: reloj controlado por el proceso, estudiante real y devolución HTTP exacta.
+    const exactStudent = Number(db.prepare(`
+      INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
+      VALUES ('Estudiante CP-030', 'cp030@labtrack.test', '20261001', ?, 'ESTUDIANTE')
+    `).run(hashPassword('Estudiante123')).lastInsertRowid);
+    const exactEnd = new Date(Date.now() + 60 * 60_000).toISOString().slice(0, 19) + 'Z';
+    const exactStart = new Date(Date.now() - 60 * 60_000).toISOString().slice(0, 19) + 'Z';
+    const exactEquipmentId = filtered.body[2].id;
+    const exactId = Number(db.prepare(`
+      INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado)
+      VALUES (?, ?, ?, ?, 'APROBADA')
+    `).run(exactStudent, exactEquipmentId, exactStart, exactEnd).lastInsertRowid);
+    assert.equal((await request('GET', '/api/equipos', student)).body
+      .find((item) => item.id === exactEquipmentId).estado, 'Prestado');
+    app.locals.returnClock = () => new Date(exactEnd);
+    let exactReturn;
+    try {
+      exactReturn = await request('PATCH', `/api/admin/reservas/${exactId}/devolver`, admin);
+    } finally {
+      delete app.locals.returnClock;
+    }
+    assert.equal(exactReturn.status, 200);
+    assert.equal(exactReturn.body.devueltaEn, new Date(exactEnd).toISOString());
+    assert.equal(exactReturn.body.retraso, false);
+    assert.equal(exactReturn.body.penalizacionAplicada, false);
+    const exactStored = db.prepare('SELECT estado, retraso FROM reservas WHERE id = ?').get(exactId);
+    assert.equal(exactStored.estado, 'DEVUELTA');
+    assert.equal(exactStored.retraso, 0);
+    assert.equal(db.prepare('SELECT estado_estudiante FROM usuarios WHERE id = ?')
+      .get(exactStudent).estado_estudiante, 'REGULAR');
+    assert.equal((await request('GET', '/api/equipos', student)).body
+      .find((item) => item.id === exactEquipmentId).estado, 'Disponible');
     assert.equal((await request('GET', '/api/admin/reservas', student)).status, 403);
     assert.equal((await request('GET', '/api/admin/reservas')).status, 401);
     assert.equal((await request('PATCH', `/api/admin/reservas/${bookingId}/devolver`, student)).status, 403);

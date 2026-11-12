@@ -56,7 +56,7 @@
   <testcase name="CP-004 - Enviar el formulario con campos vacíos">
     <node_order><![CDATA[4]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Parcial — API en `server.test.js`; falta validar el formulario visualmente..</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`; visual — navegador mostró «Completa este campo»..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -188,7 +188,7 @@
   <testcase name="CP-012 - Filtrar una categoría sin equipos">
     <node_order><![CDATA[12]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js` y `qa/scenarios.test.js`; visual — filtro Redes vacío en base QA aislada..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -196,7 +196,7 @@
       <step>
         <step_number><![CDATA[1]]></step_number>
         <actions><![CDATA[<p>Ejecutar el escenario: Filtrar una categoría sin equipos.</p>]]></actions>
-        <expectedresults><![CDATA[<p>El catálogo devuelve una lista vacía.</p>]]></expectedresults>
+        <expectedresults><![CDATA[<p>El API devuelve una lista vacía y React muestra «No hay equipos disponibles en esta categoría».</p>]]></expectedresults>
         <execution_type><![CDATA[1]]></execution_type>
       </step>
     </steps>
@@ -204,7 +204,7 @@
   <testcase name="CP-013 - Consultar el catálogo con usuarios concurrentes">
     <node_order><![CDATA[13]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Rendimiento. Cobertura: Manual — JMeter; el informe propone 50 usuarios por 60 segundos, pero no define umbrales de aceptación..</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Rendimiento. Cobertura: SIN VERIFICAR — pendiente de JMeter; el informe propone 50 usuarios por 60 segundos, pero no define umbrales de aceptación..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -240,7 +240,7 @@
   <testcase name="CP-015 - Intentar reservar un equipo que aparece prestado">
     <node_order><![CDATA[15]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Manual — requiere comprobar la interacción del catálogo; el API no prueba la interfaz..</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`; visual — Laptop HP-001 mostró el formulario y el rechazo del horario ocupado en base QA..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -248,7 +248,7 @@
       <step>
         <step_number><![CDATA[1]]></step_number>
         <actions><![CDATA[<p>Ejecutar el escenario: Intentar reservar un equipo que aparece prestado.</p>]]></actions>
-        <expectedresults><![CDATA[<p>La interfaz impide seleccionar el equipo durante el préstamo.</p>]]></expectedresults>
+        <expectedresults><![CDATA[<p>«Consultar horario» permite elegir fecha y horas; el backend rechaza con 409 el horario cubierto por una reserva aprobada.</p>]]></expectedresults>
         <execution_type><![CDATA[1]]></execution_type>
       </step>
     </steps>
@@ -288,7 +288,7 @@
   <testcase name="CP-018 - Reservar dos equipos simultáneamente como el mismo estudiante">
     <node_order><![CDATA[18]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`; HTTP — `qa/full-flow.js` comprueba solicitudes simultáneas 201/409..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -296,7 +296,7 @@
       <step>
         <step_number><![CDATA[1]]></step_number>
         <actions><![CDATA[<p>Ejecutar el escenario: Reservar dos equipos simultáneamente como el mismo estudiante.</p>]]></actions>
-        <expectedresults><![CDATA[<p>Se rechaza la segunda reserva que se superpone.</p>]]></expectedresults>
+        <expectedresults><![CDATA[<p>Se rechaza la segunda solicitud superpuesta cuando la primera está PENDIENTE o APROBADA; los horarios consecutivos siguen permitidos.</p>]]></expectedresults>
         <execution_type><![CDATA[1]]></execution_type>
       </step>
     </steps>
@@ -408,7 +408,7 @@
   <testcase name="CP-025 - Buscar una reserva activa">
     <node_order><![CDATA[25]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Parcial — `returns.test.js` prueba el listado del API; la búsqueda en la interfaz es manual..</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `returns.test.js` y `qa/scenarios.test.js` verifican el API; visual — cuatro búsquedas y «Marcar devolución» en base QA..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -416,7 +416,7 @@
       <step>
         <step_number><![CDATA[1]]></step_number>
         <actions><![CDATA[<p>Ejecutar el escenario: Buscar una reserva activa.</p>]]></actions>
-        <expectedresults><![CDATA[<p>El administrador encuentra la reserva por datos del estudiante o equipo.</p>]]></expectedresults>
+        <expectedresults><![CDATA[<p>El administrador encuentra la reserva activa por nombre o código del estudiante o equipo; una aprobación futura no figura.</p>]]></expectedresults>
         <execution_type><![CDATA[1]]></execution_type>
       </step>
     </steps>
@@ -488,7 +488,7 @@
   <testcase name="CP-030 - Devolver exactamente a la hora de fin acordada">
     <node_order><![CDATA[30]]></node_order>
     <version><![CDATA[1]]></version>
-    <summary><![CDATA[<p>Tipo: Límite. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <summary><![CDATA[<p>Tipo: Límite. Cobertura: Automatizado — `returns.test.js`; HTTP — `qa/full-flow.js` usa un reloj controlado dentro del proceso..</p>]]></summary>
     <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
     <execution_type><![CDATA[1]]></execution_type>
     <importance><![CDATA[2]]></importance>
@@ -496,7 +496,7 @@
       <step>
         <step_number><![CDATA[1]]></step_number>
         <actions><![CDATA[<p>Ejecutar el escenario: Devolver exactamente a la hora de fin acordada.</p>]]></actions>
-        <expectedresults><![CDATA[<p>Se registra la devolución sin considerarla tardía.</p>]]></expectedresults>
+        <expectedresults><![CDATA[<p>El endpoint registra DEVUELTA sin retraso ni penalización y el equipo vuelve a Disponible.</p>]]></expectedresults>
         <execution_type><![CDATA[1]]></execution_type>
       </step>
     </steps>

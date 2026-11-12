@@ -1,7 +1,7 @@
 
 const express = require("express");
 const cors = require("cors");
-const { db } = require("./db");
+const { db, equipmentDescription } = require("./db");
 const { login, logout, requireAuth, requireAdmin, requireStudent, publicUser } = require("./auth");
 const { createReservation, listMyReservations } = require('./reservations');
 const { listPending, listActive, approve, reject, registerReturn } = require('./adminReservations');
@@ -33,7 +33,7 @@ app.get("/api/equipos", requireAuth, (req, res) => {
   }
   const ahora = new Date().toISOString().slice(0, 19) + 'Z';
   const equipos = db.prepare(`
-    SELECT e.id, e.nombre, e.codigo, e.categoria, e.imagen_url,
+    SELECT e.id, e.nombre, e.codigo, e.categoria, e.imagen_url, e.descripcion,
       CASE WHEN EXISTS (
         SELECT 1 FROM reservas r
         WHERE r.equipo_id = e.id AND r.estado = 'APROBADA'
@@ -43,7 +43,9 @@ app.get("/api/equipos", requireAuth, (req, res) => {
     WHERE e.estado = 'DISPONIBLE' AND (? IS NULL OR e.categoria = ?)
     ORDER BY e.categoria, e.nombre
   `).all(ahora, categoria ?? null, categoria ?? null);
-  return res.json(equipos);
+  return res.json(equipos.map((equipo) => ({
+    ...equipo, descripcion: equipmentDescription(equipo),
+  })));
 });
 
 app.post('/api/auth/login', login);

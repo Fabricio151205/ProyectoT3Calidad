@@ -51,6 +51,7 @@ export default function ReservationForm({ equipo, api, onCancel, onCreated }) {
         <button type="button" className="text-button" onClick={onCancel} disabled={submitting}>Cerrar</button>
       </div>
       <p>Indica el horario de tu práctica. Las horas se interpretan en la zona de Lima (UTC−05:00).</p>
+      {equipo.estado === 'Prestado' && <p>Este equipo está prestado ahora. Su disponibilidad se comprobará para el horario que indiques.</p>}
       <form className="reservation-form" onSubmit={submit}>
         <div className="reservation-fields">
           <div><label htmlFor="reservation-date">Fecha</label><input id="reservation-date" type="date" min={limaToday()} value={fecha} onChange={(event) => setFecha(event.target.value)} required /></div>

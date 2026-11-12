@@ -3,6 +3,35 @@ const { scryptSync, randomBytes, timingSafeEqual } = require('node:crypto');
 const { mkdirSync } = require('node:fs');
 const path = require('node:path');
 
+const catalog = [
+  ['COMP-001', 'Laptop Dell Latitude', 'laptop-dell-latitude.jpg', 'Cómputo', 'Equipo portátil para consultar material y realizar prácticas de laboratorio.'],
+  ['ELEC-001', 'Osciloscopio digital', 'osciloscopio-digital.jpg', 'Electrónica', 'Instrumento para observar señales eléctricas durante las prácticas.'],
+  ['RED-001', 'Switch administrable', 'switch-administrable.jpg', 'Redes', 'Equipo para conectar dispositivos dentro de una red local.'],
+  ['COMP-002', 'PC HP ProDesk', 'pc-hp-prodesk.jpg', 'Cómputo', 'Computadora de escritorio para trabajar con aplicaciones del laboratorio.'],
+  ['COMP-003', 'Monitor LG 24"', 'monitor-lg-24.jpg', 'Cómputo', 'Pantalla externa para visualizar actividades y resultados de prácticas.'],
+  ['COMP-004', 'Teclado mecánico Logitech', 'teclado-logitech.jpg', 'Cómputo', 'Teclado para ingresar datos y trabajar en equipos de cómputo.'],
+  ['COMP-005', 'Mouse inalámbrico Logitech', 'mouse-logitech.jpg', 'Cómputo', 'Dispositivo apuntador para uso con computadoras del laboratorio.'],
+  ['COMP-006', 'Impresora Epson EcoTank', 'impresora-epson-ecotank.jpg', 'Cómputo', 'Impresora para documentos y materiales de práctica.'],
+  ['ELEC-002', 'Multímetro Fluke', 'multimetro-fluke.jpg', 'Electrónica', 'Instrumento para medir magnitudes eléctricas en el laboratorio.'],
+  ['ELEC-003', 'Fuente de alimentación DC', 'fuente-alimentacion-dc.jpg', 'Electrónica', 'Equipo para suministrar energía a circuitos de práctica.'],
+  ['ELEC-004', 'Protoboard', 'protoboard.jpg', 'Electrónica', 'Base reutilizable para montar circuitos sin soldadura.'],
+  ['ELEC-005', 'Arduino Uno', 'arduino-uno.jpg', 'Electrónica', 'Placa de desarrollo para ejercicios y proyectos de electrónica.'],
+  ['ELEC-006', 'Cautín de precisión', 'cautin-precision.jpg', 'Electrónica', 'Herramienta para soldar componentes en prácticas de electrónica.'],
+  ['RED-002', 'Router Cisco', 'router-cisco.jpg', 'Redes', 'Equipo para prácticas de configuración y conexión de redes.'],
+  ['RED-003', 'Access Point', 'access-point.jpg', 'Redes', 'Equipo para proporcionar acceso inalámbrico a una red.'],
+  ['RED-004', 'Patch Panel', 'patch-panel.jpg', 'Redes', 'Panel para organizar conexiones de cableado de red.'],
+  ['RED-005', 'Crimpadora RJ45', 'crimpadora-rj45.jpg', 'Redes', 'Herramienta para colocar conectores en cables de red.'],
+  ['RED-006', 'Probador de cables', 'probador-cables.jpg', 'Redes', 'Herramienta para comprobar conexiones de cables de red.'],
+];
+const demoDescriptions = new Map(catalog.map(([codigo, , , , descripcion]) => [codigo, descripcion]));
+
+function equipmentDescription(equipo) {
+  // Los textos genéricos de semillas anteriores se presentan con más detalle sin alterar SQLite.
+  return equipo.descripcion === `Equipo de ${equipo.categoria}`
+    ? demoDescriptions.get(equipo.codigo) || equipo.descripcion
+    : equipo.descripcion;
+}
+
 const databasePath = process.env.DB_PATH || path.join(__dirname, 'data', 'labtrack.sqlite');
 mkdirSync(path.dirname(databasePath), { recursive: true });
 
@@ -280,27 +309,6 @@ function seedDevelopmentData() {
     WHERE (codigo = ? OR (nombre = ? COLLATE NOCASE AND categoria = ?))
       AND (imagen_url IS NULL OR trim(imagen_url) = '')
   `);
-  const catalog = [
-    ['COMP-001', 'Laptop Dell Latitude', 'laptop-dell-latitude.jpg', 'Cómputo'],
-    ['ELEC-001', 'Osciloscopio digital', 'osciloscopio-digital.jpg', 'Electrónica'],
-    ['RED-001', 'Switch administrable', 'switch-administrable.jpg', 'Redes'],
-    ['COMP-002', 'PC HP ProDesk', 'pc-hp-prodesk.jpg', 'Cómputo'],
-    ['COMP-003', 'Monitor LG 24"', 'monitor-lg-24.jpg', 'Cómputo'],
-    ['COMP-004', 'Teclado mecánico Logitech', 'teclado-logitech.jpg', 'Cómputo'],
-    ['COMP-005', 'Mouse inalámbrico Logitech', 'mouse-logitech.jpg', 'Cómputo'],
-    ['COMP-006', 'Impresora Epson EcoTank', 'impresora-epson-ecotank.jpg', 'Cómputo'],
-    ['ELEC-002', 'Multímetro Fluke', 'multimetro-fluke.jpg', 'Electrónica'],
-    ['ELEC-003', 'Fuente de alimentación DC', 'fuente-alimentacion-dc.jpg', 'Electrónica'],
-    ['ELEC-004', 'Protoboard', 'protoboard.jpg', 'Electrónica'],
-    ['ELEC-005', 'Arduino Uno', 'arduino-uno.jpg', 'Electrónica'],
-    ['ELEC-006', 'Cautín de precisión', 'cautin-precision.jpg', 'Electrónica'],
-    ['RED-002', 'Router Cisco', 'router-cisco.jpg', 'Redes'],
-    ['RED-003', 'Access Point', 'access-point.jpg', 'Redes'],
-    ['RED-004', 'Patch Panel', 'patch-panel.jpg', 'Redes'],
-    ['RED-005', 'Crimpadora RJ45', 'crimpadora-rj45.jpg', 'Redes'],
-    ['RED-006', 'Probador de cables', 'probador-cables.jpg', 'Redes'],
-  ];
-
   db.exec('BEGIN');
   try {
     if (!db.prepare('SELECT 1 FROM usuarios WHERE email = ?').get('estudiante@labtrack.test')) {
@@ -313,10 +321,10 @@ function seedDevelopmentData() {
       .run('20240001', 'estudiante@labtrack.test');
     db.prepare('UPDATE usuarios SET codigo = ? WHERE email = ? AND codigo IS NULL')
       .run('ADM001', 'admin@labtrack.test');
-    for (const [codigo, nombre, imagen, categoria] of catalog) {
+    for (const [codigo, nombre, imagen, categoria, descripcion] of catalog) {
       const imagenUrl = `/equipos/${imagen}`;
       const ubicacion = `Laboratorio de ${categoria}`;
-      addEquipment.run(codigo, nombre, `Equipo de ${categoria}`, categoria, ubicacion,
+      addEquipment.run(codigo, nombre, descripcion, categoria, ubicacion,
         imagenUrl, codigo, nombre, categoria);
       addImage.run(imagenUrl, codigo, nombre, categoria);
     }
@@ -329,4 +337,4 @@ function seedDevelopmentData() {
 
 seedDevelopmentData();
 
-module.exports = { db, databasePath, hashPassword, verifyPassword };
+module.exports = { db, databasePath, hashPassword, verifyPassword, equipmentDescription };

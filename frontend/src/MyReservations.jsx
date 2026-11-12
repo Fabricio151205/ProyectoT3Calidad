@@ -48,7 +48,12 @@ export default function MyReservations({ api, refreshVersion }) {
           {reservations.map((item) => (
             <article className="reservation-item" key={item.id}>
               <div><h3>{item.equipoNombre}</h3><p>{item.equipoCodigo} · {dateTime.format(new Date(item.inicio))} – {dateTime.format(new Date(item.fin))}</p></div>
-              <span className={`reservation-status status-${item.estado.toLowerCase()}`}>{item.estado.charAt(0) + item.estado.slice(1).toLowerCase()}</span>
+              <div className="reservation-decision">
+                <span className={`reservation-status status-${item.estado.toLowerCase()}`}>{item.estado.charAt(0) + item.estado.slice(1).toLowerCase()}</span>
+                {item.estado === 'RECHAZADA' && item.motivo_rechazo && (
+                  <p className="rejection-reason">Motivo: {item.motivo_rechazo}</p>
+                )}
+              </div>
             </article>
           ))}
         </div>
