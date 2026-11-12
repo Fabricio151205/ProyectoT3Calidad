@@ -6,7 +6,7 @@ const lockoutMs = Number.isFinite(configuredLockMinutes) && configuredLockMinute
   ? configuredLockMinutes * 60_000 : 5 * 60_000;
 const sessionMs = 8 * 60 * 60_000;
 const cookieName = 'labtrack_session';
-const dummyHash = hashPassword('contraseña ficticia');
+const dummyHash = hashPassword(randomBytes(32).toString('base64url'));
 
 function tokenHash(token) {
   return createHash('sha256').update(token).digest('hex');

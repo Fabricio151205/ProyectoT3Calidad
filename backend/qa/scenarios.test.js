@@ -5,6 +5,7 @@ const { tmpdir } = require('node:os');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const { DatabaseSync } = require('node:sqlite');
+const { studentPassword, adminPassword } = require('./testCredentials');
 
 const directory = mkdtempSync(path.join(tmpdir(), 'labtrack-scenario-test-'));
 process.env.DB_PATH = path.join(directory, 'qa.sqlite');
@@ -30,6 +31,21 @@ test('argumentos de escenario desconocidos no crean directorios', () => {
   assert.deepEqual(readdirSync(isolatedTemp), []);
   assert.deepEqual(readdirSync(directory).sort(), before);
   assert.equal(existsSync(absoluteArgument), false);
+});
+
+test('escenario válido sin credenciales rechaza el inicio sin crear directorios ni revelar secretos', () => {
+  const isolatedTemp = path.join(directory, 'cli-no-credentials');
+  mkdirSync(isolatedTemp);
+  const result = spawnSync(process.execPath, [path.join(__dirname, 'scenarios.js'), 'active-loans'], {
+    env: { ...process.env, TEMP: isolatedTemp, TMP: isolatedTemp, TMPDIR: isolatedTemp,
+      SEED_STUDENT_PASSWORD: '', SEED_ADMIN_PASSWORD: '' },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Configura SEED_STUDENT_PASSWORD y SEED_ADMIN_PASSWORD/);
+  assert.deepEqual(readdirSync(isolatedTemp), []);
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(studentPassword));
+  assert.ok(!`${result.stdout}${result.stderr}`.includes(adminPassword));
 });
 
 function launchScenario(scenario, isolatedTemp) {
@@ -66,6 +82,8 @@ test('argumentos válidos crean solo su SQLite temporal y conservan ambos escena
     mkdirSync(isolatedTemp);
     const details = await launchScenario(scenario, isolatedTemp);
     assert.equal(details.scenario, scenario);
+    assert.ok(!JSON.stringify(details).includes(studentPassword));
+    assert.ok(!JSON.stringify(details).includes(adminPassword));
     const qaDirectory = path.dirname(details.databasePath);
     const relative = path.relative(isolatedTemp, qaDirectory);
     assert.ok(relative.startsWith(`labtrack-qa-${scenario}-`));
@@ -101,7 +119,7 @@ function request(method, pathname, body = {}, cookie = '', query = {}) {
 
 test('[HU-02][CP-012] escenario QA conserva otras categorías y deja Redes vacía', () => {
   const login = request('POST', '/api/auth/login',
-    { codigo: '20261001', password: 'Estudiante123' });
+    { codigo: '20261001', password: studentPassword });
   assert.equal(login.status, 200);
   const cookie = login.cookie;
   assert.deepEqual(request('GET', '/api/equipos', {}, cookie, { categoria: 'Redes' }).body, []);
@@ -115,7 +133,7 @@ test('[HU-02][CP-012] escenario QA conserva otras categorías y deja Redes vací
 
 test('[HU-05][CP-025] escenario QA expone préstamo activo y excluye la aprobación futura', () => {
   const login = request('POST', '/api/auth/login',
-    { codigo: 'ADM001', password: 'Admin123!' });
+    { codigo: 'ADM001', password: adminPassword });
   assert.equal(login.status, 200);
   const response = request('GET', '/api/admin/reservas/activas', {}, login.cookie);
   assert.equal(response.status, 200);

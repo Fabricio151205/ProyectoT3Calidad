@@ -285,13 +285,9 @@ function verifyPassword(password, storedHash) {
 }
 
 function seedDevelopmentData() {
-  const production = process.env.NODE_ENV === 'production';
-  if (production && (!process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD)) return;
-
-  const localPasswords = !production && (!process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD)
-    ? require('./devSeed') : null;
-  const studentPassword = process.env.SEED_STUDENT_PASSWORD || localPasswords.studentPassword;
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || localPasswords.adminPassword;
+  const studentPassword = process.env.SEED_STUDENT_PASSWORD;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!studentPassword || !adminPassword) return;
 
   const addUser = db.prepare(`
     INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)

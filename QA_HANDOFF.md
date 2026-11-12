@@ -13,6 +13,8 @@ Para pruebas manuales, Selenium o JMeter, usa una base distinta de `backend/data
 ```powershell
 $env:DB_PATH = Join-Path $env:TEMP 'labtrack-qa-equipo.sqlite'
 $env:NODE_ENV = 'development'
+$env:SEED_STUDENT_PASSWORD = (Read-Host 'Contraseña de estudiante QA' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
+$env:SEED_ADMIN_PASSWORD = (Read-Host 'Contraseña de administrador QA' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
 npm start
 ```
 
@@ -20,14 +22,14 @@ Elige un nombre de archivo distinto por ejecución o equipo. Comprueba el valor 
 
 | Rol | Código | Contraseña de desarrollo |
 | --- | --- | --- |
-| ESTUDIANTE | `20240001` | `Estudiante123!` |
-| ADMINISTRADOR | `ADM001` | `Admin123!` |
+| ESTUDIANTE | `20240001` | Valor configurado en `SEED_STUDENT_PASSWORD` |
+| ADMINISTRADOR | `ADM001` | Valor configurado en `SEED_ADMIN_PASSWORD` |
 
 Estas credenciales son solo para bases de desarrollo. Las contraseñas se almacenan con `scrypt` y sal, nunca en texto plano.
 
 ## Autenticación y rutas
 
-`POST /api/auth/login` recibe JSON `{ "codigo": "20240001", "password": "Estudiante123!" }` y responde con `Set-Cookie: labtrack_session=...`. La cookie es `HttpOnly`, `SameSite=Lax` y `Secure` cuando `NODE_ENV=production`. No envíes un rol desde el cliente. En Selenium conserva la cookie con el mismo navegador; en JMeter usa **HTTP Cookie Manager** y una sesión por usuario virtual. `POST /api/auth/logout` elimina la sesión y la cookie. Una petición sin cookie a rutas protegidas responde `401`; un estudiante en rutas administrativas recibe `403`.
+`POST /api/auth/login` recibe JSON con `codigo` y la contraseña configurada para esa cuenta y responde con `Set-Cookie: labtrack_session=...`. La cookie es `HttpOnly`, `SameSite=Lax` y `Secure` cuando `NODE_ENV=production`. No envíes un rol desde el cliente. En Selenium conserva la cookie con el mismo navegador; en JMeter usa **HTTP Cookie Manager** y una sesión por usuario virtual. `POST /api/auth/logout` elimina la sesión y la cookie. Una petición sin cookie a rutas protegidas responde `401`; un estudiante en rutas administrativas recibe `403`.
 
 | Método | Ruta | Rol | Cuerpo o parámetro |
 | --- | --- | --- | --- |

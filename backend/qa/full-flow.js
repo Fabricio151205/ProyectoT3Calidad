@@ -2,6 +2,9 @@ const assert = require('node:assert/strict');
 const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { studentPassword, adminPassword, temporaryPassword } = require('./testCredentials');
+const secondStudentPassword = temporaryPassword();
+const exactStudentPassword = temporaryPassword();
 
 const tempDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-http-flow-'));
 process.env.DB_PATH = path.join(tempDirectory, 'flow.sqlite');
@@ -38,9 +41,9 @@ async function main() {
     const secondStudentId = Number(db.prepare(`
       INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
       VALUES ('Estudiante QA', 'qa@labtrack.test', 'QA002', ?, 'ESTUDIANTE')
-    `).run(hashPassword('Prueba123!')).lastInsertRowid);
+    `).run(hashPassword(secondStudentPassword)).lastInsertRowid);
     const studentLogin = await request('POST', '/api/auth/login', '',
-      { codigo: '20240001', password: 'Estudiante123!' });
+      { codigo: '20240001', password: studentPassword });
     assert.equal(studentLogin.status, 200);
     const student = studentLogin.cookie;
     const allEquipment = await request('GET', '/api/equipos', student);
@@ -60,7 +63,7 @@ async function main() {
       .some((item) => item.id === bookingId && item.estado === 'PENDIENTE'));
 
     const otherLogin = await request('POST', '/api/auth/login', '',
-      { codigo: 'QA002', password: 'Prueba123!' });
+      { codigo: 'QA002', password: secondStudentPassword });
     assert.equal(otherLogin.status, 200);
     const other = otherLogin.cookie;
     const competing = await request('POST', '/api/reservas', other, booking);
@@ -74,7 +77,7 @@ async function main() {
     assert.match(simultaneous.find((result) => result.status === 409).body.mensaje, /solicitud pendiente/i);
 
     const adminLogin = await request('POST', '/api/auth/login', '',
-      { codigo: 'ADM001', password: 'Admin123!' });
+      { codigo: 'ADM001', password: adminPassword });
     assert.equal(adminLogin.status, 200);
     const admin = adminLogin.cookie;
     assert.ok((await request('GET', '/api/admin/reservas', admin)).body
@@ -113,7 +116,7 @@ async function main() {
     const exactStudent = Number(db.prepare(`
       INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
       VALUES ('Estudiante CP-030', 'cp030@labtrack.test', '20261001', ?, 'ESTUDIANTE')
-    `).run(hashPassword('Estudiante123')).lastInsertRowid);
+    `).run(hashPassword(exactStudentPassword)).lastInsertRowid);
     const exactEnd = new Date(Date.now() + 60 * 60_000).toISOString().slice(0, 19) + 'Z';
     const exactStart = new Date(Date.now() - 60 * 60_000).toISOString().slice(0, 19) + 'Z';
     const exactEquipmentId = filtered.body[2].id;

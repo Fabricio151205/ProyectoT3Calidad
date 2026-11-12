@@ -6,8 +6,8 @@ services:
       PORT: "3000"
       DB_PATH: /data/labtrack.sqlite
       LOCKOUT_MINUTES: "5"
-      SEED_STUDENT_PASSWORD: ${SEED_STUDENT_PASSWORD:-Estudiante123!}
-      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin123!}
+      SEED_STUDENT_PASSWORD: ${SEED_STUDENT_PASSWORD:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
     volumes:
       - sqlite_data:/data
     networks:

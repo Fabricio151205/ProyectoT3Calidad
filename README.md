@@ -25,10 +25,12 @@ QA_HANDOFF.md     Guía para las pruebas de calidad
 
 ## Ejecutar
 
-Se requiere Node.js 24. En dos terminales:
+Se requiere Node.js 24. En la terminal del backend, configura dos contraseñas locales distintas sin guardarlas en el historial de comandos. En dos terminales:
 
-```sh
+```powershell
 cd backend
+$env:SEED_STUDENT_PASSWORD = (Read-Host 'Contraseña de estudiante' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
+$env:SEED_ADMIN_PASSWORD = (Read-Host 'Contraseña de administrador' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
 npm install
 npm start
 ```
@@ -39,7 +41,7 @@ npm install
 npm run dev
 ```
 
-La base de datos se crea automáticamente en `backend/data/labtrack.sqlite`. Se puede cambiar su ubicación con `DB_PATH`. En producción (`NODE_ENV=production`) las tablas se crean siempre; las cuentas iniciales y los equipos se agregan solo si se configuran ambas contraseñas `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`.
+La base de datos se crea automáticamente en `backend/data/labtrack.sqlite`. Se puede cambiar su ubicación con `DB_PATH`. En desarrollo y producción las tablas se crean siempre; las cuentas iniciales y los equipos de ejemplo se agregan solo si se configuran ambas contraseñas `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`. No hay contraseñas de respaldo en el código.
 
 Abre **la URL exacta que imprima Vite**. El frontend reenvía `/api` al backend en `http://localhost:3000`. También puedes comprobar `GET http://localhost:3000/api/health`.
 
@@ -53,7 +55,9 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Abre `http://localhost:8080`. Nginx sirve React, los 18 JPG y `/api` mediante proxy hacia Express. El backend no publica su puerto; SQLite reside en el volumen persistente `labtrack_sqlite_data`, montado en `/data`, con `DB_PATH=/data/labtrack.sqlite`. Esta primera ejecución crea una **base de prueba independiente** con las cuentas de desarrollo de la tabla inferior. Compose pasa las contraseñas públicas de demostración al iniciar; `backend/devSeed.js` conserva el comportamiento local y se excluye de la imagen. Puedes cambiar `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD` en el entorno antes de crear una base nueva. `NODE_ENV=development` permite esas cuentas y la cookie de sesión sobre HTTP local; esta configuración no es un despliegue de producción.
+Antes de iniciar una base nueva, copia `.env.example` como `.env` local (excluido por Git) y asigna dos contraseñas distintas a `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`. También puedes suministrarlas mediante variables de entorno del proceso. Compose no incluye claves predeterminadas; si faltan, no crea cuentas ni equipos de ejemplo en una base nueva. En una base existente no cambia las contraseñas ni los datos guardados.
+
+Abre `http://localhost:8080`. Nginx sirve React, los 18 JPG y `/api` mediante proxy hacia Express. El backend no publica su puerto; SQLite reside en el volumen persistente `labtrack_sqlite_data`, montado en `/data`, con `DB_PATH=/data/labtrack.sqlite`. `NODE_ENV=development` permite la cookie de sesión sobre HTTP local; esta configuración no es un despliegue de producción.
 
 ```powershell
 docker compose logs -f backend frontend
@@ -66,13 +70,13 @@ docker compose up --build -d
 ## Preparar Railway (sin publicar automáticamente)
 
 1. En Railway crea un proyecto desde el repositorio GitHub `Fabricio151205/ProyectoT3Calidad`. Configura **dos servicios** conectados al mismo repositorio y rama: `backend` con *Root Directory* `/backend` y `frontend` con `/frontend`. Cada servicio detecta su propio `Dockerfile`; no uses `compose.yaml` como origen del despliegue.
-2. En `backend`, configura `NODE_ENV=production`, `PORT=3000`, `DB_PATH=/data/labtrack.sqlite`, `LOCKOUT_MINUTES=5`, `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`. Genera **dos contraseñas distintas y largas** fuera del repositorio (por ejemplo, `node -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))"`) y guárdalas únicamente como variables privadas del servicio. Los códigos iniciales son `20240001` y `ADM001`; las contraseñas públicas de demostración de Compose no deben usarse en Railway. El sembrado crea usuarios y los 18 equipos solo si faltan; no reemplaza usuarios, reservas ni contraseñas ya guardadas. Si cambias estas variables después, no se rotan las contraseñas existentes.
+2. En `backend`, configura `NODE_ENV=production`, `PORT=3000`, `DB_PATH=/data/labtrack.sqlite`, `LOCKOUT_MINUTES=5`, `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`. Genera **dos contraseñas distintas y largas** fuera del repositorio (por ejemplo, `node -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))"`) y guárdalas únicamente como variables privadas del servicio. Los códigos iniciales son `20240001` y `ADM001`; no uses claves de demostración en Railway. El sembrado crea usuarios y los 18 equipos solo si faltan; no reemplaza usuarios, reservas ni contraseñas ya guardadas. Si cambias estas variables después, no se rotan las contraseñas existentes.
 3. Adjunta **un Railway Volume** solo a `backend`, montado en `/data`. Railway monta el volumen como root; configura `RAILWAY_RUN_UID=0` en ese servicio para permitir la escritura con esta imagen. Comprueba en los logs que SQLite abre `/data/labtrack.sqlite` y que `GET /api/health` responde. Configura la ruta de salud `/api/health`. Mantén una sola réplica de backend para este volumen.
 4. No generes dominio público ni TCP Proxy para `backend`. En `frontend`, configura `PORT=8080` y `BACKEND_UPSTREAM=${{backend.RAILWAY_PRIVATE_DOMAIN}}:3000` como variable de referencia de Railway (o `backend.railway.internal:3000` si el servicio se llama exactamente `backend`). Nginx genera su configuración al arrancar y reenvía `/api` por la red privada. Configura la ruta de salud `/`.
 5. Cuando decidas publicar, en **frontend → Settings → Networking → Public Networking**, selecciona *Generate Domain* con puerto destino `8080`. Railway suministra la URL HTTPS pública; comprueba `/api/health`, el inicio de sesión, los 18 equipos e imágenes y las cinco historias con datos de prueba. No hace falta CORS para este flujo del mismo origen. Las cookies de producción llevan `Secure`, `HttpOnly` y `SameSite=Lax`.
 6. Para verificar persistencia, crea una reserva de prueba, anota su ID, reinicia o redespliega el backend y consulta `GET /api/mis-reservas` con la sesión iniciada de nuevo. Comprueba que el ID sigue allí. No importes automáticamente `backend/data/labtrack.sqlite` ni elimines el volumen. Consulta las opciones de respaldo de Railway antes de usar datos importantes.
 
-El despliegue Railway requiere completar estas acciones en la cuenta del propietario; preparar el repositorio no crea servicios ni activa recursos de pago. El entorno local Docker Compose mantiene el proxy `backend:3000`, las cuentas públicas de prueba y el volumen independiente `labtrack_sqlite_data`.
+El despliegue Railway requiere completar estas acciones en la cuenta del propietario; preparar el repositorio no crea servicios ni activa recursos de pago. El entorno local Docker Compose mantiene el proxy `backend:3000`, las cuentas de prueba configuradas por el usuario y el volumen independiente `labtrack_sqlite_data`.
 
 ### Respaldos e importación segura
 
@@ -151,7 +155,7 @@ El backend comprueba conflictos con reservas **aprobadas** del equipo y del estu
 
 ## Gestión administrativa HU-04
 
-Entra con `ADM001` / `Admin123!` para ver las solicitudes pendientes. **Aprobar** pide confirmación y vuelve a comprobar los cruces antes de actualizar la reserva. **Rechazar** exige un motivo y lo guarda junto con el estado `RECHAZADA`. La tabla se actualiza sin recargar la página.
+Entra con `ADM001` y la contraseña administrativa configurada para esa base para ver las solicitudes pendientes. **Aprobar** pide confirmación y vuelve a comprobar los cruces antes de actualizar la reserva. **Rechazar** exige un motivo y lo guarda junto con el estado `RECHAZADA`. La tabla se actualiza sin recargar la página.
 
 Las rutas administrativas requieren sesión y rol `ADMINISTRADOR`:
 
@@ -173,8 +177,8 @@ Para comprobar un retraso desde el navegador, solicita como estudiante un horari
 
 | Rol | Código para iniciar sesión | Contraseña |
 | --- | --- | --- |
-| ESTUDIANTE | 20240001 | Estudiante123! |
-| ADMINISTRADOR | ADM001 | Admin123! |
+| ESTUDIANTE | 20240001 | Valor de `SEED_STUDENT_PASSWORD` al crear la cuenta |
+| ADMINISTRADOR | ADM001 | Valor de `SEED_ADMIN_PASSWORD` al crear la cuenta |
 
 Las contraseñas se almacenan como hashes `scrypt` con sal aleatoria por usuario. Estas cuentas son solo para desarrollo. El bloqueo después de tres intentos fallidos dura cinco minutos de forma predeterminada; se puede configurar con `LOCKOUT_MINUTES`. Las sesiones usan una cookie `HttpOnly`, `SameSite=Lax` y, en producción, `Secure`.
 

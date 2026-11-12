@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { studentPassword, adminPassword, temporaryPassword } = require('./qa/testCredentials');
+const additionalStudentPassword = temporaryPassword();
 
 const testDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-returns-test-'));
 process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
@@ -32,8 +34,8 @@ function login(codigo, password) {
   return request('POST', '/api/auth/login', { codigo, password }).cookie;
 }
 
-const adminCookie = login('ADM001', 'Admin123!');
-const studentCookie = login('20240001', 'Estudiante123!');
+const adminCookie = login('ADM001', adminPassword);
+const studentCookie = login('20240001', studentPassword);
 const studentId = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get().id;
 const equipment = db.prepare('SELECT id FROM equipos ORDER BY id').all();
 
@@ -174,7 +176,7 @@ test('[HU-05][CP-029] un milisegundo después del fin acordado cuenta como retra
 test('[HU-05][CP-030] devolver exactamente al fin acordado no cuenta como retraso', () => {
   const student = db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
     VALUES ('Estudiante CP-030', 'cp030@labtrack.test', '20261001', ?, 'ESTUDIANTE')`)
-    .run(hashPassword('Estudiante123'));
+    .run(hashPassword(additionalStudentPassword));
   const start = at(-60);
   const end = at(60);
   const id = db.prepare(`

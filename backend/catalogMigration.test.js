@@ -5,6 +5,7 @@ const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join, resolve, sep } = require('node:path');
 const { spawnSync } = require('node:child_process');
+require('./qa/testCredentials');
 
 test('migra equipos existentes, conserva sus IDs y completa el catálogo sin duplicados', () => {
   const directory = mkdtempSync(join(tmpdir(), 'labtrack-catalog-'));

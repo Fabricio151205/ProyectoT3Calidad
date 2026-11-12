@@ -6,14 +6,16 @@ const scenarios = new Set(['active-loans', 'empty-category']);
 
 function populateScenario(db, hashPassword, scenario, now = new Date()) {
   if (!scenarios.has(scenario)) throw new Error('Escenario QA desconocido.');
+  const studentPassword = process.env.SEED_STUDENT_PASSWORD;
+  if (!studentPassword) throw new Error('Configura SEED_STUDENT_PASSWORD para el escenario QA.');
   const addStudent = db.prepare(`
     INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
     VALUES (?, ?, ?, ?, 'ESTUDIANTE')
   `);
   const studentId = Number(addStudent.run('Juan Pérez', 'juan.qa@labtrack.test',
-    '20261001', hashPassword('Estudiante123')).lastInsertRowid);
+    '20261001', hashPassword(studentPassword)).lastInsertRowid);
   const secondStudentId = Number(addStudent.run('Ana QA', 'ana.qa@labtrack.test',
-    '20261002', hashPassword('Estudiante123')).lastInsertRowid);
+    '20261002', hashPassword(studentPassword)).lastInsertRowid);
   const addEquipment = db.prepare(`
     INSERT INTO equipos (codigo, nombre, descripcion, categoria, ubicacion)
     VALUES (?, ?, ?, 'Cómputo', 'Laboratorio QA')
@@ -61,12 +63,13 @@ if (require.main === module) {
   if (!scenarios.has(scenario) || !prefix) {
     console.error('Uso: node qa/scenarios.js active-loans|empty-category');
     process.exitCode = 1;
+  } else if (!process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD) {
+    console.error('Configura SEED_STUDENT_PASSWORD y SEED_ADMIN_PASSWORD antes de ejecutar el escenario QA.');
+    process.exitCode = 1;
   } else {
     const directory = mkdtempSync(path.join(tmpdir(), prefix));
     process.env.DB_PATH = path.join(directory, 'qa.sqlite');
     process.env.NODE_ENV = 'development';
-    process.env.SEED_STUDENT_PASSWORD = 'Estudiante123!';
-    process.env.SEED_ADMIN_PASSWORD = 'Admin123!';
     const { db, hashPassword } = require('../db');
     const ids = populateScenario(db, hashPassword, scenario);
     const app = require('../server');
@@ -74,7 +77,7 @@ if (require.main === module) {
     app.listen(port, '127.0.0.1', () => {
       console.log(JSON.stringify({ scenario, databasePath: process.env.DB_PATH,
         backendUrl: `http://127.0.0.1:${port}`, ids,
-        demoAccounts: ['20261001 / Estudiante123', 'ADM001 / Admin123!'] }, null, 2));
+        demoAccounts: ['20261001', '20261002', 'ADM001'] }, null, 2));
     });
   }
 }

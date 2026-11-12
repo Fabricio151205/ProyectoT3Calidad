@@ -3,6 +3,10 @@ const assert = require('node:assert/strict');
 const { existsSync, mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { studentPassword, adminPassword, temporaryPassword } = require('./qa/testCredentials');
+const concurrentStudentPassword = temporaryPassword();
+const borrowedEquipmentPassword = temporaryPassword();
+const invalidPassword = temporaryPassword();
 
 const testDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-test-'));
 process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
@@ -11,7 +15,7 @@ const { db, hashPassword } = require('./db');
 const app = require('./server');
 
 test('[HU-02][CP-007, CP-008] la ruta Express consulta los equipos guardados en SQLite', () => {
-  const sesion = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
+  const sesion = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
   const equipos = request('GET', '/api/equipos', {}, sesion).body;
   assert.equal(equipos.length, 18);
   assert.deepEqual(new Set(equipos.map((equipo) => equipo.categoria)),
@@ -92,7 +96,7 @@ function request(method, pathname, body = {}, cookie = '', query = {}) {
 }
 
 function studentCookie() {
-  return request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
+  return request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
 }
 
 function futureDate(extraDays = 0) {
@@ -181,9 +185,9 @@ test('[HU-03][CP-018] rechaza otra solicitud pendiente simultánea sin bloquear 
 
   db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
     VALUES ('Estudiante adicional', 'adicional@labtrack.test', 'QA-018', ?, 'ESTUDIANTE')`)
-    .run(hashPassword('Prueba018!'));
+    .run(hashPassword(concurrentStudentPassword));
   const otherCookie = request('POST', '/api/auth/login',
-    { codigo: 'QA-018', password: 'Prueba018!' }).cookie;
+    { codigo: 'QA-018', password: concurrentStudentPassword }).cookie;
   assert.equal(reservationRequest(equipment.id, date, '11:00', '13:00', otherCookie).status, 201);
 });
 
@@ -218,7 +222,7 @@ test('[HU-03][CP-015] un préstamo vigente bloquea su horario, pero permite uno 
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'ELEC-002'").get();
   const other = db.prepare(`INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
     VALUES ('Estudiante CP-015', 'cp015@labtrack.test', 'QA-015', ?, 'ESTUDIANTE')`)
-    .run(hashPassword('Prueba015!'));
+    .run(hashPassword(borrowedEquipmentPassword));
   const date = futureDate(11);
   const start = new Date(Date.now() - 3_600_000).toISOString().slice(0, 19) + 'Z';
   db.prepare("INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado) VALUES (?, ?, ?, ?, 'APROBADA')")
@@ -233,7 +237,7 @@ test('[HU-03][Adicional] reserva y consulta propia requieren sesión de estudian
   const equipment = db.prepare('SELECT id FROM equipos LIMIT 1').get();
   assert.equal(reservationRequest(equipment.id, futureDate(7), '10:00', '11:00', '').status, 401);
   assert.equal(request('GET', '/api/mis-reservas').status, 401);
-  const admin = request('POST', '/api/auth/login', { codigo: 'ADM001', password: 'Admin123!' }).cookie;
+  const admin = request('POST', '/api/auth/login', { codigo: 'ADM001', password: adminPassword }).cookie;
   assert.equal(reservationRequest(equipment.id, futureDate(7), '10:00', '11:00', admin).status, 403);
 });
 
@@ -274,7 +278,7 @@ test('[HU-04][Mejora] mis reservas muestra solo el motivo de rechazos propios', 
 });
 
 test('[HU-02][CP-009, CP-010, CP-011] catálogo filtra cada categoría exacta', () => {
-  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
+  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
   for (const categoria of ['Cómputo', 'Electrónica', 'Redes']) {
     const response = request('GET', '/api/equipos', {}, cookie, { categoria });
     assert.equal(response.status, 200);
@@ -289,7 +293,7 @@ test('[HU-02][CP-009, CP-010, CP-011] catálogo filtra cada categoría exacta', 
 });
 
 test('[HU-02][CP-012] categoría sin equipos devuelve lista vacía', () => {
-  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
+  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
   db.exec('SAVEPOINT catalogo_vacio');
   try {
     db.prepare("UPDATE equipos SET estado = 'MANTENIMIENTO' WHERE categoria = 'Redes'").run();
@@ -319,7 +323,7 @@ test('[HU-02][CP-012] Mecánica está vacía y los 18 equipos siguen en las tres
 });
 
 test('[HU-02][CP-008] reserva vigente refleja el estado Prestado en el catálogo', () => {
-  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
+  const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
   const usuario = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipo = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
   const start = new Date(Date.now() - 3_600_000).toISOString().slice(0, 19) + 'Z';
@@ -340,15 +344,36 @@ test('[HU-02][CP-008] reserva vigente refleja el estado Prestado en el catálogo
 });
 
 test('[HU-01][CP-001, CP-003] inicio de sesión correcto y rechazo de contraseña incorrecta', () => {
-  const bad = request('POST', '/api/auth/login', { codigo: '20240001', password: 'incorrecta' });
+  const bad = request('POST', '/api/auth/login', { codigo: '20240001', password: invalidPassword });
   assert.equal(bad.status, 401);
   assert.equal(bad.body.mensaje, 'Credenciales inválidas');
-  const good = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' });
+  const good = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword });
   assert.equal(good.status, 200);
   assert.equal(good.body.usuario.rol, 'ESTUDIANTE');
   assert.ok(good.cookie.startsWith('labtrack_session='));
   assert.equal(db.prepare("SELECT intentos_fallidos FROM usuarios WHERE codigo = '20240001'").get().intentos_fallidos, 0);
   assert.equal(request('GET', '/api/auth/me', {}, good.cookie).body.usuario.codigo, '20240001');
+});
+
+test('[HU-01][Seguridad] la respuesta y los registros no exponen contraseñas', () => {
+  const output = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = (...parts) => output.push(parts.join(' '));
+  console.error = (...parts) => output.push(parts.join(' '));
+  try {
+    const result = request('POST', '/api/auth/login',
+      { codigo: 'NO_EXISTE_SEGURIDAD', password: invalidPassword });
+    assert.equal(result.status, 401);
+    assert.equal(result.body.mensaje, 'Credenciales inválidas');
+    const exposed = JSON.stringify(result.body) + output.join(' ');
+    for (const secret of [studentPassword, adminPassword, invalidPassword]) {
+      assert.ok(!exposed.includes(secret));
+    }
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+  }
 });
 
 test('[HU-01][CP-004] inicio de sesión con campos vacíos es rechazado', () => {
@@ -360,7 +385,7 @@ test('[HU-01][CP-004] inicio de sesión con campos vacíos es rechazado', () => 
 });
 
 test('[HU-01][CP-002] usuario inexistente recibe mensaje genérico', () => {
-  const response = request('POST', '/api/auth/login', { codigo: 'NO_EXISTE', password: 'incorrecta' });
+  const response = request('POST', '/api/auth/login', { codigo: 'NO_EXISTE', password: invalidPassword });
   assert.equal(response.status, 401);
   assert.equal(response.body.mensaje, 'Credenciales inválidas');
   assert.equal(db.prepare("SELECT count(*) AS total FROM intentos_login WHERE codigo = 'NO_EXISTE'").get().total, 1);
@@ -369,20 +394,20 @@ test('[HU-01][CP-002] usuario inexistente recibe mensaje genérico', () => {
 test('[HU-01][CP-005, CP-006] tres intentos fallidos bloquean temporalmente la cuenta', () => {
   const existingSession = studentCookie();
   for (let i = 1; i <= 3; i++) {
-    const response = request('POST', '/api/auth/login', { codigo: '20240001', password: 'incorrecta' });
+    const response = request('POST', '/api/auth/login', { codigo: '20240001', password: invalidPassword });
     assert.equal(response.status, i === 3 ? 423 : 401);
     assert.equal(response.body.mensaje, 'Credenciales inválidas');
     if (i === 3) assert.match(response.body.alerta, /bloqueada temporalmente/i);
   }
   assert.equal(request('GET', '/api/auth/me', {}, existingSession).status, 401);
-  const locked = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' });
+  const locked = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword });
   assert.equal(locked.status, 423);
   const user = db.prepare("SELECT intentos_fallidos, bloqueado_hasta FROM usuarios WHERE codigo = '20240001'").get();
   assert.equal(user.intentos_fallidos, 3);
   assert.ok(Date.parse(user.bloqueado_hasta) > Date.now());
   db.prepare("UPDATE usuarios SET bloqueado_hasta = '2020-01-01T00:00:00.000Z' WHERE codigo = '20240001'").run();
   assert.equal(request('GET', '/api/auth/me', {}, existingSession).status, 200);
-  assert.equal(request('POST', '/api/auth/login', { codigo: '20240001', password: 'incorrecta' }).status, 401);
+  assert.equal(request('POST', '/api/auth/login', { codigo: '20240001', password: invalidPassword }).status, 401);
   assert.equal(db.prepare("SELECT intentos_fallidos FROM usuarios WHERE codigo = '20240001'").get().intentos_fallidos, 1);
 });
 
@@ -400,13 +425,13 @@ test('[HU-05][CP-029] devolución tardía registra retraso y penaliza al estudia
 });
 
 test('[HU-04][Adicional] administrador accede a rutas administrativas; estudiante y anónimo no', () => {
-  const admin = request('POST', '/api/auth/login', { codigo: 'ADM001', password: 'Admin123!' });
+  const admin = request('POST', '/api/auth/login', { codigo: 'ADM001', password: adminPassword });
   assert.equal(admin.status, 200);
   assert.equal(admin.body.usuario.rol, 'ADMINISTRADOR');
   assert.equal(request('GET', '/api/admin/resumen', {}, admin.cookie).status, 200);
   assert.equal(request('GET', '/api/admin/resumen').status, 401);
   db.prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE codigo = '20240001'").run();
-  const student = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' });
+  const student = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword });
   assert.equal(request('GET', '/api/admin/resumen', {}, student.cookie).status, 403);
 });
 

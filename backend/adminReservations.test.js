@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { studentPassword, adminPassword, temporaryPassword } = require('./qa/testCredentials');
+const otherStudentPassword = temporaryPassword();
 
 const testDirectory = mkdtempSync(path.join(tmpdir(), 'labtrack-admin-test-'));
 process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
@@ -13,7 +15,7 @@ const studentId = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'"
 const otherId = db.prepare(`
   INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
   VALUES ('Otra estudiante', 'otra@labtrack.test', '20240002', ?, 'ESTUDIANTE')
-`).run(hashPassword('Otra123!')).lastInsertRowid;
+`).run(hashPassword(otherStudentPassword)).lastInsertRowid;
 const equipment = db.prepare('SELECT id, codigo FROM equipos ORDER BY id').all();
 
 function request(method, pathname, body = {}, cookie = '', params = {}) {
@@ -39,8 +41,8 @@ function login(codigo, password) {
   return request('POST', '/api/auth/login', { codigo, password }).cookie;
 }
 
-const adminCookie = login('ADM001', 'Admin123!');
-const studentCookie = login('20240001', 'Estudiante123!');
+const adminCookie = login('ADM001', adminPassword);
+const studentCookie = login('20240001', studentPassword);
 
 function date(days) {
   return new Date(Date.now() + (400 + days) * 86_400_000).toISOString().slice(0, 10);

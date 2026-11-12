@@ -7,6 +7,8 @@ Estos comandos crean **una base SQLite nueva en `%TEMP%` en cada ejecución** y 
 En una terminal, desde `backend`:
 
 ```powershell
+$env:SEED_STUDENT_PASSWORD = (Read-Host 'Contraseña de estudiante QA' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
+$env:SEED_ADMIN_PASSWORD = (Read-Host 'Contraseña de administrador QA' -AsSecureString | ConvertFrom-SecureString -AsPlainText)
 node qa/scenarios.js empty-category
 ```
 
@@ -18,12 +20,12 @@ node qa/scenarios.js active-loans
 
 Detén la primera ejecución antes de iniciar la segunda: ambas escuchan en el puerto 3000. Cada comando conserva su propia base temporal para inspección posterior. En otra terminal, desde `frontend`, ejecuta `npm run dev` y abre **la URL que Vite imprima**. El proxy de Vite dirige `/api` a `localhost:3000`.
 
-Credenciales públicas de demostración para estas bases:
+Credenciales configuradas por cada integrante para estas bases:
 
 | Rol | Código | Contraseña |
 | --- | --- | --- |
-| Estudiante Juan Pérez | `20261001` | `Estudiante123` |
-| Administrador de prueba | `ADM001` | `Admin123!` |
+| Estudiante Juan Pérez | `20261001` | Valor de `SEED_STUDENT_PASSWORD` |
+| Administrador de prueba | `ADM001` | Valor de `SEED_ADMIN_PASSWORD` |
 
 Las contraseñas se guardan mediante el `scrypt` existente. No se incluyen contraseñas de Railway. El escenario `active-loans` contiene los 18 equipos de demostración, más `Laptop HP-001` (`HP-001`) y `Proyector PR-002` (`PR-002`), con equipos en Cómputo, Electrónica y Redes. Ambos escenarios incluyen una solicitud pendiente, una rechazada con motivo, una reserva aprobada vigente de Juan Pérez para la laptop, una aprobación futura del proyector y un préstamo vencido de Ana QA para probar una devolución tardía. `empty-category` deja Redes sin equipos **solo en su propia base QA**.
 
