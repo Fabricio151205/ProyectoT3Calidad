@@ -65,8 +65,8 @@ app.patch('/api/admin/reservas/:id/rechazar', requireAuth, requireAdmin, reject)
 app.patch('/api/admin/reservas/:id/devolver', requireAuth, requireAdmin, registerReturn);
 
 if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor en http://localhost:${PORT}`);
+  const server = app.listen(PORT, '::', () => {
+    console.log(`Servidor en http://[::]:${server.address().port}`);
   });
 }
 
