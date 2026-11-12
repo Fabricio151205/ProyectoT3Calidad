@@ -10,7 +10,7 @@ function EquipmentCard({ equipo, onReserve, onDetails }) {
   return (
     <article className="equipment-card">
       <button type="button" className="equipment-image equipment-image-button"
-        aria-label={`Ver detalles de ${equipo.nombre}`} onClick={() => onDetails(equipo)}>
+        aria-label={`Ver detalles de ${equipo.nombre}`} onClick={(event) => onDetails(equipo, event.currentTarget)}>
         {equipo.imagen_url && !imageFailed ? (
           <img src={equipo.imagen_url} alt={equipo.nombre} loading="lazy" onError={() => setImageFailed(true)} />
         ) : <span className="equipment-image-placeholder">Imagen no disponible</span>}
@@ -21,10 +21,10 @@ function EquipmentCard({ equipo, onReserve, onDetails }) {
           <span aria-hidden="true" className="status-dot" />{equipo.estado}
         </span>
       </div>
-      <h3><button type="button" className="equipment-name-button" onClick={() => onDetails(equipo)}>{equipo.nombre}</button></h3>
+      <h3><button type="button" className="equipment-name-button" onClick={(event) => onDetails(equipo, event.currentTarget)}>{equipo.nombre}</button></h3>
       <p>Código de inventario</p>
       <strong className="equipment-code">{equipo.codigo}</strong>
-      <button type="button" className="equipment-details-link" onClick={() => onDetails(equipo)}>Ver detalles</button>
+      <button type="button" className="equipment-details-link" onClick={(event) => onDetails(equipo, event.currentTarget)}>Ver detalles</button>
       <button type="button" className="reserve-button" onClick={() => onReserve(equipo)}>
         {disponible ? 'Reservar' : 'Consultar horario'}
       </button>
@@ -85,9 +85,9 @@ export default function EquipmentCatalog({ api, onReserved }) {
     onReserved()
   }
 
-  function openDetails(equipo) {
+  function openDetails(equipo, opener) {
     setSelected(null)
-    setDetails(equipo)
+    setDetails({ equipo, opener })
   }
 
   function openReservation(equipo) {
@@ -109,7 +109,8 @@ export default function EquipmentCatalog({ api, onReserved }) {
         ))}
       </div>
       {notice && <p className="catalog-success" role="status">{notice}</p>}
-      {details && <EquipmentDetailsModal key={details.id} equipo={details} onClose={() => setDetails(null)} onReserve={openReservation} />}
+      {details && <EquipmentDetailsModal key={details.equipo.id} equipo={details.equipo} returnFocusTo={details.opener}
+        onClose={() => setDetails(null)} onReserve={openReservation} />}
       {selected && <ReservationForm key={selected.id} equipo={selected} api={api} onCancel={() => setSelected(null)} onCreated={created} />}
       {loading ? <p className="catalog-feedback" role="status">Cargando equipos…</p> : error ? (
         <div className="catalog-feedback" role="alert">

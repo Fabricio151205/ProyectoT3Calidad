@@ -148,8 +148,11 @@ input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 4px r
 .equipment-code { font-size: 13px; letter-spacing: .015em; }
 .reserve-button { align-self: flex-start; margin-top: 23px; padding: 10px 17px; border: 1px solid #c5d8f8; background: #edf4ff; color: #1e58bb; font-size: 12px; }
 .reserve-button:hover { background: var(--blue); border-color: var(--blue); color: white; transform: translateY(-1px); }
-.equipment-modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(9, 22, 45, .58); animation: modal-fade-in .2s ease both; }
-.equipment-modal { width: min(820px, 100%); max-height: min(90svh, 750px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow: auto; border-radius: 20px; background: #fff; box-shadow: 0 25px 75px rgba(8, 23, 49, .25); animation: modal-rise-in .25s ease both; }
+.equipment-modal-backdrop { position: fixed; inset: 0; z-index: 50; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; color: inherit; display: grid; place-items: center; padding: 20px; background: rgba(9, 22, 45, .58); animation: modal-fade-in .2s ease both; }
+.equipment-modal-backdrop:not([open]) { display: none; }
+.equipment-modal-backdrop::backdrop { background: transparent; }
+.equipment-modal-dismiss { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: default; }
+.equipment-modal { position: relative; width: min(820px, 100%); max-height: min(90svh, 750px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow: auto; border-radius: 20px; background: #fff; box-shadow: 0 25px 75px rgba(8, 23, 49, .25); animation: modal-rise-in .25s ease both; }
 .equipment-modal-image { min-height: 350px; display: grid; place-items: center; padding: 28px; background: #f7f9fd; }
 .equipment-modal-image img { display: block; width: 100%; max-height: 390px; object-fit: contain; }
 .equipment-modal-content { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: clamp(24px, 4vw, 40px); }
