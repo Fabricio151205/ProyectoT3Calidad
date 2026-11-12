@@ -55,11 +55,14 @@ function populateScenario(db, hashPassword, scenario, now = new Date()) {
 
 if (require.main === module) {
   const scenario = process.argv[2];
-  if (!scenarios.has(scenario)) {
+  let prefix;
+  if (scenario === 'active-loans') prefix = 'labtrack-qa-active-loans-';
+  else if (scenario === 'empty-category') prefix = 'labtrack-qa-empty-category-';
+  if (!scenarios.has(scenario) || !prefix) {
     console.error('Uso: node qa/scenarios.js active-loans|empty-category');
     process.exitCode = 1;
   } else {
-    const directory = mkdtempSync(path.join(tmpdir(), `labtrack-qa-${scenario}-`));
+    const directory = mkdtempSync(path.join(tmpdir(), prefix));
     process.env.DB_PATH = path.join(directory, 'qa.sqlite');
     process.env.NODE_ENV = 'development';
     process.env.SEED_STUDENT_PASSWORD = 'Estudiante123!';

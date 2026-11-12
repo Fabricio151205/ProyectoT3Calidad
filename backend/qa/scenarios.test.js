@@ -1,9 +1,10 @@
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { mkdirSync, mkdtempSync, readdirSync, rmSync } = require('node:fs');
+const { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
+const { DatabaseSync } = require('node:sqlite');
 
 const directory = mkdtempSync(path.join(tmpdir(), 'labtrack-scenario-test-'));
 process.env.DB_PATH = path.join(directory, 'qa.sqlite');
@@ -15,7 +16,10 @@ const ids = populateScenario(db, hashPassword, 'empty-category');
 test('argumentos de escenario desconocidos no crean directorios', () => {
   const isolatedTemp = path.join(directory, 'cli-temp');
   mkdirSync(isolatedTemp);
-  for (const scenario of ['desconocido', '../escape']) {
+  const absoluteArgument = path.join(directory, 'ruta-absoluta');
+  const before = readdirSync(directory).sort();
+  for (const scenario of ['desconocido', '../escape', '..\\escape', absoluteArgument,
+    'active-loans/otro', 'empty-category\\otro']) {
     const result = spawnSync(process.execPath, [path.join(__dirname, 'scenarios.js'), scenario], {
       env: { ...process.env, TEMP: isolatedTemp, TMP: isolatedTemp, TMPDIR: isolatedTemp },
       encoding: 'utf8',
@@ -24,6 +28,59 @@ test('argumentos de escenario desconocidos no crean directorios', () => {
     assert.match(result.stderr, /Uso: node qa\/scenarios\.js/);
   }
   assert.deepEqual(readdirSync(isolatedTemp), []);
+  assert.deepEqual(readdirSync(directory).sort(), before);
+  assert.equal(existsSync(absoluteArgument), false);
+});
+
+function launchScenario(scenario, isolatedTemp) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(__dirname, 'scenarios.js'), scenario], {
+      env: { ...process.env, TEMP: isolatedTemp, TMP: isolatedTemp, TMPDIR: isolatedTemp, QA_PORT: '0' },
+    });
+    let output = '';
+    let errors = '';
+    let details;
+    const timeout = setTimeout(() => child.kill(), 15_000);
+    child.stdout.on('data', (chunk) => {
+      output += chunk;
+      try {
+        details = JSON.parse(output);
+        child.kill();
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) reject(error);
+      }
+    });
+    child.stderr.on('data', (chunk) => { errors += chunk; });
+    child.on('error', reject);
+    child.on('close', () => {
+      clearTimeout(timeout);
+      if (details) resolve(details);
+      else reject(new Error(`El escenario no inició: ${errors || output}`));
+    });
+  });
+}
+
+test('argumentos válidos crean solo su SQLite temporal y conservan ambos escenarios', async () => {
+  for (const scenario of ['active-loans', 'empty-category']) {
+    const isolatedTemp = path.join(directory, `cli-${scenario}`);
+    mkdirSync(isolatedTemp);
+    const details = await launchScenario(scenario, isolatedTemp);
+    assert.equal(details.scenario, scenario);
+    const qaDirectory = path.dirname(details.databasePath);
+    const relative = path.relative(isolatedTemp, qaDirectory);
+    assert.ok(relative.startsWith(`labtrack-qa-${scenario}-`));
+    assert.equal(path.dirname(relative), '.');
+    assert.deepEqual(readdirSync(isolatedTemp), [relative]);
+    const qaDb = new DatabaseSync(details.databasePath, { readOnly: true });
+    try {
+      assert.equal(qaDb.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+      assert.equal(qaDb.prepare("SELECT count(*) AS total FROM reservas WHERE estado = 'APROBADA'").get().total, 3);
+      assert.equal(qaDb.prepare("SELECT count(*) AS total FROM equipos WHERE categoria = 'Redes'").get().total,
+        scenario === 'empty-category' ? 0 : 6);
+    } finally {
+      qaDb.close();
+    }
+  }
 });
 
 function request(method, pathname, body = {}, cookie = '', query = {}) {
