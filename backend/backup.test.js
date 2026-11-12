@@ -19,6 +19,7 @@ source.close();
 function backup(destination, allowedDir = backupDir) {
   return spawnSync(process.execPath, [path.join(__dirname, 'backup.js'), destination], {
     env: { ...process.env, DB_PATH: sourcePath, BACKUP_DIR: allowedDir },
+    cwd: __dirname,
     encoding: 'utf8',
   });
 }
@@ -35,6 +36,14 @@ test('crea un respaldo SQLite íntegro dentro del directorio autorizado', () => 
   } finally {
     copy.close();
   }
+});
+
+test('acepta rutas relativas documentadas y extensiones .db', () => {
+  const destination = path.join(backupDir, 'respaldo-20261112.db');
+  const result = backup(path.relative(__dirname, destination));
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).destination, destination);
+  assert.equal(existsSync(destination), true);
 });
 
 test('no sobrescribe un respaldo existente', () => {
@@ -59,6 +68,14 @@ test('rechaza rutas fuera del directorio autorizado y rutas anidadas', () => {
   assert.equal(existsSync(nested), false);
 });
 
+test('rechaza nombres de archivo no permitidos sin crear archivos', () => {
+  for (const name of ['.env', 'nombre con espacios.sqlite', 'doble..punto.sqlite', 'archivo.txt']) {
+    const destination = path.join(backupDir, name);
+    assert.notEqual(backup(destination).status, 0, name);
+    assert.equal(existsSync(destination), false, name);
+  }
+});
+
 test('rechaza un directorio autorizado que sea enlace simbólico', (t) => {
   const linkedDir = path.join(directory, 'linked');
   try {
@@ -70,6 +87,22 @@ test('rechaza un directorio autorizado que sea enlace simbólico', (t) => {
   const destination = path.join(linkedDir, 'escape.sqlite');
   assert.notEqual(backup(destination, linkedDir).status, 0);
   assert.equal(existsSync(path.join(outsideDir, 'escape.sqlite')), false);
+});
+
+test('rechaza un enlace simbólico en un directorio padre de BACKUP_DIR', (t) => {
+  const actualDir = path.join(outsideDir, 'nested');
+  mkdirSync(actualDir);
+  const linkedParent = path.join(directory, 'linked-parent');
+  try {
+    symlinkSync(outsideDir, linkedParent, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (error) {
+    if (error.code === 'EPERM' || error.code === 'ENOTSUP') return t.skip('El sistema no permite crear enlaces simbólicos.');
+    throw error;
+  }
+  const requestedRoot = path.join(linkedParent, 'nested');
+  const destination = path.join(requestedRoot, 'escape.sqlite');
+  assert.notEqual(backup(destination, requestedRoot).status, 0);
+  assert.equal(existsSync(path.join(actualDir, 'escape.sqlite')), false);
 });
 
 test('no sigue un enlace simbólico usado como archivo de destino', (t) => {

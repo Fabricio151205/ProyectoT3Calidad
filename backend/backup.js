@@ -3,7 +3,7 @@ const { closeSync, existsSync, lstatSync, mkdirSync, openSync, realpathSync, sta
 const path = require('node:path');
 
 const sourcePath = process.env.DB_PATH || path.join(__dirname, 'data', 'labtrack.sqlite');
-const destination = process.argv[2] && path.resolve(process.argv[2]);
+const requestedPath = process.argv[2] && path.resolve(process.argv[2]);
 const localBackupDir = path.join(__dirname, 'backups');
 const allowedDirectories = process.env.BACKUP_DIR
   ? [path.resolve(process.env.BACKUP_DIR)]
@@ -14,23 +14,36 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!destination || !existsSync(sourcePath) || path.resolve(sourcePath) === destination) {
+if (!requestedPath || !existsSync(sourcePath)) {
   fail('Indica una ruta nueva de respaldo y comprueba que la base de origen exista.');
+}
+
+const fileName = path.basename(requestedPath);
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.(?:sqlite|db)$/.test(fileName) || fileName.includes('..')) {
+  fail('El nombre del respaldo debe ser un archivo .sqlite o .db sin espacios ni rutas.');
 }
 
 // Solo se admiten archivos directos en el directorio de respaldos autorizado.
 const backupDir = allowedDirectories.find((directory) => {
-  const relative = path.relative(directory, destination);
-  return relative && path.dirname(relative) === '.' && !path.isAbsolute(relative) &&
-    (process.platform !== 'win32' || !relative.includes(':'));
+  const relative = path.relative(directory, requestedPath);
+  return relative && path.dirname(relative) === '.' && !path.isAbsolute(relative);
 });
 if (!backupDir) fail('El respaldo debe guardarse directamente en un directorio autorizado.');
 
 if (backupDir === localBackupDir) mkdirSync(localBackupDir, { recursive: true });
 if (!existsSync(backupDir) || lstatSync(backupDir).isSymbolicLink() ||
-    !statSync(backupDir).isDirectory() || realpathSync(path.dirname(destination)) !== realpathSync(backupDir)) {
+    !statSync(backupDir).isDirectory()) {
   fail('El directorio de respaldos no existe o es un enlace simbólico.');
 }
+const canonicalBackupDir = realpathSync(backupDir);
+if (path.relative(backupDir, canonicalBackupDir) !== '' ||
+    realpathSync(path.dirname(requestedPath)) !== canonicalBackupDir) {
+  fail('El directorio de respaldos contiene un enlace simbólico.');
+}
+
+// La ruta utilizada para escribir se construye solo desde el directorio comprobado y el nombre validado.
+const destination = path.join(canonicalBackupDir, fileName);
+if (path.resolve(sourcePath) === destination) fail('El destino no puede ser la base de origen.');
 
 // La creación exclusiva impide sobrescribir incluso un archivo vacío o un enlace existente.
 try {

@@ -78,7 +78,7 @@ El despliegue Railway requiere completar estas acciones en la cuenta del propiet
 
 `backend/backup.js` crea una copia SQLite consistente con `VACUUM INTO`, sin sobrescribir un archivo existente, y comprueba integridad y claves foráneas. Para respaldar la base local actual desde la raíz:
 
-El destino debe ser un archivo directo en `backend/backups/` o, dentro del contenedor Linux, en `/backup` montado desde el host. No se aceptan rutas fuera de esos directorios, subdirectorios ni directorios de respaldo que sean enlaces simbólicos. Para autorizar otro directorio existente en una ejecución administrativa o de QA, configura `BACKUP_DIR` con su ruta absoluta; esta opción reemplaza los directorios predeterminados solo para esa ejecución.
+El destino debe ser un archivo directo en `backend/backups/` o, dentro del contenedor Linux, en `/backup` montado desde el host. El nombre debe comenzar con una letra o número, contener solo letras ASCII, números, puntos, guiones o guiones bajos, y terminar en `.sqlite` o `.db`. No se aceptan rutas fuera de esos directorios, subdirectorios ni directorios de respaldo que sean enlaces simbólicos. Para autorizar otro directorio existente en una ejecución administrativa o de QA, configura `BACKUP_DIR` con su ruta absoluta; esta opción reemplaza los directorios predeterminados solo para esa ejecución.
 
 ```powershell
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
