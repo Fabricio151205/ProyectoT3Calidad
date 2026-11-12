@@ -1,5 +1,9 @@
 # LabTrack: traspaso al equipo de calidad
 
+## Entorno Docker para compartir
+
+Desde la raíz, ejecuta `docker compose up --build -d` y abre `http://localhost:8080`. Nginx sirve la aplicación y reenvía `/api` al backend; Selenium y JMeter pueden utilizar ese mismo origen. Las sesiones usan la cookie `labtrack_session`, por lo que cada usuario virtual debe conservar su propia cookie. La base de este entorno reside en el volumen Docker `labtrack_sqlite_data`, independiente de `backend/data/labtrack.sqlite`. Para detener los servicios sin borrar datos, ejecuta `docker compose down` sin `-v`. Las pruebas de carga o que alteren horarios deben usar una base de QA aislada, como se indica a continuación.
+
 ## Preparación del entorno
 
 Requiere Node.js 24.14.1 y npm. Instala dependencias con `npm install` en `backend` y `frontend`. El backend escucha en `http://localhost:3000` por defecto. Ejecuta Vite con `npm run dev` desde `frontend` y utiliza **la URL exacta que muestre su terminal**; el proxy de Vite dirige `/api` a `http://localhost:3000`.

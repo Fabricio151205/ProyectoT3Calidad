@@ -1,0 +1,13 @@
+node_modules/
+data/
+backups/
+.env
+.env.*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.log
+*.test.js
+qa/
+devSeed.js

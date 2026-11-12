@@ -1,0 +1,39 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      DB_PATH: /data/labtrack.sqlite
+      LOCKOUT_MINUTES: "5"
+      SEED_STUDENT_PASSWORD: ${SEED_STUDENT_PASSWORD:-Estudiante123!}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin123!}
+    volumes:
+      - sqlite_data:/data
+    networks:
+      - labtrack_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - labtrack_net
+    restart: unless-stopped
+
+networks:
+  labtrack_net:
+    driver: bridge
+
+volumes:
+  sqlite_data:

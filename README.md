@@ -43,6 +43,53 @@ La base de datos se crea automáticamente en `backend/data/labtrack.sqlite`. Se 
 
 Abre **la URL exacta que imprima Vite**. El frontend reenvía `/api` al backend en `http://localhost:3000`. También puedes comprobar `GET http://localhost:3000/api/health`.
 
+## Docker Compose (entorno local de prueba)
+
+Docker Desktop debe estar iniciado. Desde la raíz del proyecto, en PowerShell:
+
+```powershell
+docker compose config
+docker compose up --build -d
+docker compose ps
+```
+
+Abre `http://localhost:8080`. Nginx sirve React, los 18 JPG y `/api` mediante proxy hacia Express. El backend no publica su puerto; SQLite reside en el volumen persistente `labtrack_sqlite_data`, montado en `/data`, con `DB_PATH=/data/labtrack.sqlite`. Esta primera ejecución crea una **base de prueba independiente** con las cuentas de desarrollo de la tabla inferior. Compose pasa las contraseñas públicas de demostración al iniciar; `backend/devSeed.js` conserva el comportamiento local y se excluye de la imagen. Puedes cambiar `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD` en el entorno antes de crear una base nueva. `NODE_ENV=development` permite esas cuentas y la cookie de sesión sobre HTTP local; esta configuración no es un despliegue de producción.
+
+```powershell
+docker compose logs -f backend frontend
+docker compose down
+docker compose up --build -d
+```
+
+`down` detiene los servicios y conserva el volumen. Tras modificar código, ejecuta de nuevo `docker compose up --build -d`. **No uses `down -v`** si quieres conservar la base del contenedor.
+
+### Respaldos e importación segura
+
+`backend/backup.js` crea una copia SQLite consistente con `VACUUM INTO`, sin sobrescribir un archivo existente, y comprueba integridad y claves foráneas. Para respaldar la base local actual desde la raíz:
+
+```powershell
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+node backend/backup.js "backend/backups/labtrack-local-$stamp.sqlite"
+```
+
+Para respaldar la base del volumen Docker en el host, con los contenedores activos:
+
+```powershell
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$backupDir = Join-Path (Get-Location).Path 'backend\backups'
+docker compose run --rm --no-deps -v "${backupDir}:/backup" backend node backup.js "/backup/labtrack-compose-$stamp.sqlite"
+```
+
+La base local `backend/data/labtrack.sqlite` y sus respaldos se excluyen del contexto Docker. Para importar **más adelante** un respaldo local a un volumen nuevo, primero detén la pila de prueba con `docker compose down` (sin `-v`). Usa el nombre real de un respaldo verificado en el siguiente ejemplo; el comando falla si la base de destino ya existe:
+
+```powershell
+$backup = (Resolve-Path '.\backend\backups\NOMBRE-DEL-RESPALDO.sqlite').Path
+docker compose -p labtrack-import run --rm --no-deps -v "${backup}:/backup.sqlite:ro" backend sh -c 'test ! -e /data/labtrack.sqlite && cp /backup.sqlite /data/labtrack.sqlite'
+docker compose -p labtrack-import up -d
+```
+
+El proyecto `labtrack-import` utiliza otro volumen persistente, `labtrack-import_sqlite_data`; no reemplaza la base local ni el volumen de prueba inicial. Después de importar, comprueba `docker compose -p labtrack-import ps`, `/api/health` y los recuentos de usuarios, equipos y reservas. No importes mientras otro servicio use el puerto 8080.
+
 ## Rutas HTTP
 
 | Método | Ruta | Acceso | Uso |

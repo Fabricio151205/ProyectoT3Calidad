@@ -258,6 +258,11 @@ function verifyPassword(password, storedHash) {
 function seedDevelopmentData() {
   if (process.env.NODE_ENV === 'production') return;
 
+  const localPasswords = !process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD
+    ? require('./devSeed') : null;
+  const studentPassword = process.env.SEED_STUDENT_PASSWORD || localPasswords.studentPassword;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || localPasswords.adminPassword;
+
   const addUser = db.prepare(`
     INSERT INTO usuarios (nombre, email, codigo, password_hash, rol)
     VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO NOTHING
@@ -298,10 +303,10 @@ function seedDevelopmentData() {
   db.exec('BEGIN');
   try {
     if (!db.prepare('SELECT 1 FROM usuarios WHERE email = ?').get('estudiante@labtrack.test')) {
-      addUser.run('Estudiante de prueba', 'estudiante@labtrack.test', '20240001', hashPassword('Estudiante123!'), 'ESTUDIANTE');
+      addUser.run('Estudiante de prueba', 'estudiante@labtrack.test', '20240001', hashPassword(studentPassword), 'ESTUDIANTE');
     }
     if (!db.prepare('SELECT 1 FROM usuarios WHERE email = ?').get('admin@labtrack.test')) {
-      addUser.run('Administrador de prueba', 'admin@labtrack.test', 'ADM001', hashPassword('Admin123!'), 'ADMINISTRADOR');
+      addUser.run('Administrador de prueba', 'admin@labtrack.test', 'ADM001', hashPassword(adminPassword), 'ADMINISTRADOR');
     }
     db.prepare('UPDATE usuarios SET codigo = ? WHERE email = ? AND codigo IS NULL')
       .run('20240001', 'estudiante@labtrack.test');

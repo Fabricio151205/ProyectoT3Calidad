@@ -1,0 +1,29 @@
+# Dependencias y artefactos de compilación
+node_modules/
+dist/
+dist-ssr/
+
+# Configuración y secretos locales
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+
+# Bases de datos y respaldos
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+backups/
+
+# Logs y archivos temporales
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+.DS_Store
+.idea/
+.vscode/
