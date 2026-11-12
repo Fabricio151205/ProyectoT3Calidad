@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-La base de datos se crea automáticamente en `backend/data/labtrack.sqlite`. Se puede cambiar su ubicación con `DB_PATH`. En producción (`NODE_ENV=production`) no se crean cuentas ni equipos de ejemplo.
+La base de datos se crea automáticamente en `backend/data/labtrack.sqlite`. Se puede cambiar su ubicación con `DB_PATH`. En producción (`NODE_ENV=production`) las tablas se crean siempre; las cuentas iniciales y los equipos se agregan solo si se configuran ambas contraseñas `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`.
 
 Abre **la URL exacta que imprima Vite**. El frontend reenvía `/api` al backend en `http://localhost:3000`. También puedes comprobar `GET http://localhost:3000/api/health`.
 
@@ -62,6 +62,17 @@ docker compose up --build -d
 ```
 
 `down` detiene los servicios y conserva el volumen. Tras modificar código, ejecuta de nuevo `docker compose up --build -d`. **No uses `down -v`** si quieres conservar la base del contenedor.
+
+## Preparar Railway (sin publicar automáticamente)
+
+1. En Railway crea un proyecto desde el repositorio GitHub `Fabricio151205/ProyectoT3Calidad`. Configura **dos servicios** conectados al mismo repositorio y rama: `backend` con *Root Directory* `/backend` y `frontend` con `/frontend`. Cada servicio detecta su propio `Dockerfile`; no uses `compose.yaml` como origen del despliegue.
+2. En `backend`, configura `NODE_ENV=production`, `PORT=3000`, `DB_PATH=/data/labtrack.sqlite`, `LOCKOUT_MINUTES=5`, `SEED_STUDENT_PASSWORD` y `SEED_ADMIN_PASSWORD`. Genera **dos contraseñas distintas y largas** fuera del repositorio (por ejemplo, `node -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))"`) y guárdalas únicamente como variables privadas del servicio. Los códigos iniciales son `20240001` y `ADM001`; las contraseñas públicas de demostración de Compose no deben usarse en Railway. El sembrado crea usuarios y los 18 equipos solo si faltan; no reemplaza usuarios, reservas ni contraseñas ya guardadas. Si cambias estas variables después, no se rotan las contraseñas existentes.
+3. Adjunta **un Railway Volume** solo a `backend`, montado en `/data`. Railway monta el volumen como root; configura `RAILWAY_RUN_UID=0` en ese servicio para permitir la escritura con esta imagen. Comprueba en los logs que SQLite abre `/data/labtrack.sqlite` y que `GET /api/health` responde. Configura la ruta de salud `/api/health`. Mantén una sola réplica de backend para este volumen.
+4. No generes dominio público ni TCP Proxy para `backend`. En `frontend`, configura `PORT=8080` y `BACKEND_UPSTREAM=${{backend.RAILWAY_PRIVATE_DOMAIN}}:3000` como variable de referencia de Railway (o `backend.railway.internal:3000` si el servicio se llama exactamente `backend`). Nginx genera su configuración al arrancar y reenvía `/api` por la red privada. Configura la ruta de salud `/`.
+5. Cuando decidas publicar, en **frontend → Settings → Networking → Public Networking**, selecciona *Generate Domain* con puerto destino `8080`. Railway suministra la URL HTTPS pública; comprueba `/api/health`, el inicio de sesión, los 18 equipos e imágenes y las cinco historias con datos de prueba. No hace falta CORS para este flujo del mismo origen. Las cookies de producción llevan `Secure`, `HttpOnly` y `SameSite=Lax`.
+6. Para verificar persistencia, crea una reserva de prueba, anota su ID, reinicia o redespliega el backend y consulta `GET /api/mis-reservas` con la sesión iniciada de nuevo. Comprueba que el ID sigue allí. No importes automáticamente `backend/data/labtrack.sqlite` ni elimines el volumen. Consulta las opciones de respaldo de Railway antes de usar datos importantes.
+
+El despliegue Railway requiere completar estas acciones en la cuenta del propietario; preparar el repositorio no crea servicios ni activa recursos de pago. El entorno local Docker Compose mantiene el proxy `backend:3000`, las cuentas públicas de prueba y el volumen independiente `labtrack_sqlite_data`.
 
 ### Respaldos e importación segura
 

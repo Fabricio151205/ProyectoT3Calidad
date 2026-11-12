@@ -9,7 +9,9 @@ const { listPending, listActive, approve, reject, registerReturn } = require('./
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-app.use(cors());
+if (process.env.CORS_ORIGIN) {
+  app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+}
 app.use(express.json());
 
 // Comprobar que el servidor funciona
@@ -60,7 +62,7 @@ app.patch('/api/admin/reservas/:id/rechazar', requireAuth, requireAdmin, reject)
 app.patch('/api/admin/reservas/:id/devolver', requireAuth, requireAdmin, registerReturn);
 
 if (require.main === module) {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor en http://localhost:${PORT}`);
   });
 }

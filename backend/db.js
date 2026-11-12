@@ -256,9 +256,10 @@ function verifyPassword(password, storedHash) {
 }
 
 function seedDevelopmentData() {
-  if (process.env.NODE_ENV === 'production') return;
+  const production = process.env.NODE_ENV === 'production';
+  if (production && (!process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD)) return;
 
-  const localPasswords = !process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD
+  const localPasswords = !production && (!process.env.SEED_STUDENT_PASSWORD || !process.env.SEED_ADMIN_PASSWORD)
     ? require('./devSeed') : null;
   const studentPassword = process.env.SEED_STUDENT_PASSWORD || localPasswords.studentPassword;
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || localPasswords.adminPassword;
