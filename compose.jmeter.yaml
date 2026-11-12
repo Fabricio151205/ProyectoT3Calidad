@@ -1,0 +1,38 @@
+name: labtrack-jmeter
+
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - .env.jmeter
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      DB_PATH: /data/jmeter.sqlite
+      LOCKOUT_MINUTES: "5"
+    tmpfs:
+      - /data:mode=0700,uid=1000,gid=1000
+    networks:
+      - jmeter_net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_UPSTREAM: backend:3000
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - jmeter_net
+
+networks:
+  jmeter_net:
+    driver: bridge
