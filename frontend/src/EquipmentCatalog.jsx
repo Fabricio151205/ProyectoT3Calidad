@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import ReservationForm from './ReservationForm'
 import EquipmentDetailsModal from './EquipmentDetailsModal'
 
-const filters = ['Todos', 'Cómputo', 'Electrónica', 'Redes']
+const filters = ['Todos', 'Cómputo', 'Electrónica', 'Redes', 'Mecánica']
 
 function EquipmentCard({ equipo, onReserve, onDetails }) {
   const disponible = equipo.estado === 'Disponible'

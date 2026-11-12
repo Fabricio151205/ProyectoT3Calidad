@@ -301,6 +301,23 @@ test('[HU-02][CP-012] categoría sin equipos devuelve lista vacía', () => {
   }
 });
 
+test('[HU-02][CP-012] Mecánica está vacía y los 18 equipos siguen en las tres categorías originales', () => {
+  const cookie = studentCookie();
+  const all = request('GET', '/api/equipos', {}, cookie);
+  assert.equal(all.status, 200);
+  assert.equal(all.body.length, 18);
+  for (const categoria of ['Cómputo', 'Electrónica', 'Redes']) {
+    const response = request('GET', '/api/equipos', {}, cookie, { categoria });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.length, 6);
+    assert.ok(response.body.every((equipo) => equipo.categoria === categoria));
+  }
+  const empty = request('GET', '/api/equipos', {}, cookie, { categoria: 'Mecánica' });
+  assert.equal(empty.status, 200);
+  assert.deepEqual(empty.body, []);
+  assert.equal(db.prepare("SELECT count(*) AS total FROM equipos WHERE categoria = 'Mecánica'").get().total, 0);
+});
+
 test('[HU-02][CP-008] reserva vigente refleja el estado Prestado en el catálogo', () => {
   const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
   const usuario = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();

@@ -22,7 +22,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-const categorias = new Set(['Cómputo', 'Electrónica', 'Redes']);
+const categorias = new Set(['Cómputo', 'Electrónica', 'Redes', 'Mecánica']);
 
 // El estado visible se calcula para el instante actual, sin modificar el inventario.
 app.get("/api/equipos", requireAuth, (req, res) => {
