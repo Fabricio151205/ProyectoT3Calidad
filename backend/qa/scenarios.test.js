@@ -1,8 +1,9 @@
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdirSync, mkdtempSync, readdirSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const directory = mkdtempSync(path.join(tmpdir(), 'labtrack-scenario-test-'));
 process.env.DB_PATH = path.join(directory, 'qa.sqlite');
@@ -10,6 +11,20 @@ const { db, hashPassword } = require('../db');
 const app = require('../server');
 const { populateScenario } = require('./scenarios');
 const ids = populateScenario(db, hashPassword, 'empty-category');
+
+test('argumentos de escenario desconocidos no crean directorios', () => {
+  const isolatedTemp = path.join(directory, 'cli-temp');
+  mkdirSync(isolatedTemp);
+  for (const scenario of ['desconocido', '../escape']) {
+    const result = spawnSync(process.execPath, [path.join(__dirname, 'scenarios.js'), scenario], {
+      env: { ...process.env, TEMP: isolatedTemp, TMP: isolatedTemp, TMPDIR: isolatedTemp },
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Uso: node qa\/scenarios\.js/);
+  }
+  assert.deepEqual(readdirSync(isolatedTemp), []);
+});
 
 function request(method, pathname, body = {}, cookie = '', query = {}) {
   const route = app.router.stack.find((layer) => layer.route?.path === pathname && layer.route.methods[method.toLowerCase()]);

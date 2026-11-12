@@ -70,7 +70,7 @@ async function main() {
     const simultaneous = await Promise.all([equipmentId, filtered.body[1].id].map((equipoId) =>
       request('POST', '/api/reservas', student,
         { equipoId, fecha: simultaneousDay, horaInicio: '10:00', horaFin: '11:00' })));
-    assert.deepEqual(simultaneous.map((result) => result.status).sort(), [201, 409]);
+    assert.deepEqual(simultaneous.map((result) => result.status).sort((a, b) => a - b), [201, 409]);
     assert.match(simultaneous.find((result) => result.status === 409).body.mensaje, /solicitud pendiente/i);
 
     const adminLogin = await request('POST', '/api/auth/login', '',
