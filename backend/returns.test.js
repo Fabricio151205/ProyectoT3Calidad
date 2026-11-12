@@ -57,7 +57,7 @@ function active(cookie = adminCookie) {
   return request('GET', '/api/admin/reservas/activas', {}, cookie);
 }
 
-test('lista solo aprobadas sin devolución con datos de estudiante, equipo y horario', () => {
+test('[HU-05][CP-025 API] lista solo préstamos activos con los datos necesarios', () => {
   const approved = reservation('APROBADA');
   const pending = reservation('PENDIENTE', equipment[1].id);
   const rejected = reservation('RECHAZADA', equipment[2].id);
@@ -74,7 +74,7 @@ test('lista solo aprobadas sin devolución con datos de estudiante, equipo y hor
   assert.ok(!active().body.some((item) => item.id === approved));
 });
 
-test('devolución puntual conserva estado del estudiante y el historial', () => {
+test('[HU-05][CP-026, CP-028] devolución puntual conserva estado del estudiante y el historial', () => {
   const id = reservation('APROBADA');
   const before = db.prepare('SELECT estado_estudiante FROM usuarios WHERE id = ?').get(studentId).estado_estudiante;
   const result = markReturned(id);
@@ -90,7 +90,7 @@ test('devolución puntual conserva estado del estudiante y el historial', () => 
   assert.ok(request('GET', '/api/mis-reservas', {}, studentCookie).body.some((item) => item.id === id && item.estado === 'DEVUELTA'));
 });
 
-test('devolución tardía penaliza y libera inmediatamente equipo vencido', () => {
+test('[HU-05][CP-027, CP-029] devolución tardía penaliza y libera el equipo', () => {
   const id = reservation('APROBADA', equipment[0].id, -180, -60);
   const catalog = () => request('GET', '/api/equipos', {}, studentCookie).body.find((item) => item.id === equipment[0].id);
   assert.equal(catalog().estado, 'Prestado');
@@ -104,7 +104,7 @@ test('devolución tardía penaliza y libera inmediatamente equipo vencido', () =
   assert.equal(db.prepare('SELECT estado FROM equipos WHERE id = ?').get(equipment[0].id).estado, 'DISPONIBLE');
 });
 
-test('devolución puntual mantiene PENALIZADO si el estudiante ya lo estaba', () => {
+test('[HU-05][Adicional] devolución puntual mantiene PENALIZADO si ya lo estaba', () => {
   const id = reservation('APROBADA');
   const result = markReturned(id);
   assert.equal(result.status, 200);
@@ -113,14 +113,14 @@ test('devolución puntual mantiene PENALIZADO si el estudiante ya lo estaba', ()
   assert.equal(db.prepare('SELECT estado_estudiante FROM usuarios WHERE id = ?').get(studentId).estado_estudiante, 'PENALIZADO');
 });
 
-test('no permite una segunda devolución', () => {
+test('[HU-05][Adicional] no permite una segunda devolución', () => {
   const id = reservation('APROBADA');
   assert.equal(markReturned(id).status, 200);
   assert.equal(markReturned(id).status, 409);
   assert.equal(db.prepare('SELECT count(*) AS total FROM reservas WHERE id = ?').get(id).total, 1);
 });
 
-test('rechaza devolución de solicitud pendiente o rechazada', () => {
+test('[HU-05][Adicional] rechaza devolución de solicitud pendiente o rechazada', () => {
   const pending = reservation('PENDIENTE', equipment[1].id);
   const rejected = reservation('RECHAZADA', equipment[2].id);
   assert.equal(markReturned(pending).status, 409);
@@ -129,7 +129,7 @@ test('rechaza devolución de solicitud pendiente o rechazada', () => {
   assert.equal(db.prepare('SELECT devuelta_en FROM reservas WHERE id = ?').get(pending).devuelta_en, null);
 });
 
-test('deniega consulta y devolución a estudiantes y usuarios sin sesión', () => {
+test('[HU-05][Adicional] deniega consulta y devolución a estudiantes y usuarios sin sesión', () => {
   const id = reservation('APROBADA', equipment[1].id);
   assert.equal(active('').status, 401);
   assert.equal(active(studentCookie).status, 403);
@@ -138,7 +138,7 @@ test('deniega consulta y devolución a estudiantes y usuarios sin sesión', () =
   assert.equal(db.prepare('SELECT estado FROM reservas WHERE id = ?').get(id).estado, 'APROBADA');
 });
 
-test('ignora fecha enviada por React y usa el reloj del servidor', () => {
+test('[HU-05][Adicional] ignora fecha enviada por React y usa el reloj del servidor', () => {
   const id = reservation('APROBADA', equipment[0].id, -300, -180);
   const before = Date.now() - 1000;
   const result = markReturned(id, adminCookie, { devueltaEn: '2020-01-01T00:00:00Z' });
@@ -150,7 +150,7 @@ test('ignora fecha enviada por React y usa el reloj del servidor', () => {
   assert.notEqual(persisted, '2020-01-01T00:00:00Z');
 });
 
-test('aprobada futura no figura como préstamo activo ni se puede devolver', () => {
+test('[HU-05][Adicional] aprobada futura no figura como préstamo activo ni se puede devolver', () => {
   const id = reservation('APROBADA', equipment[2].id, 120, 180);
   assert.ok(!active().body.some((item) => item.id === id));
   assert.equal(markReturned(id).status, 409);
@@ -159,7 +159,7 @@ test('aprobada futura no figura como préstamo activo ni se puede devolver', () 
   assert.equal(db.prepare('SELECT estado FROM reservas WHERE id = ?').get(id).estado, 'APROBADA');
 });
 
-test('un milisegundo después del fin acordado cuenta como retraso', () => {
+test('[HU-05][CP-029] un milisegundo después del fin acordado cuenta como retraso', () => {
   const end = at(-350);
   const id = Number(db.prepare(`
     INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado)
@@ -169,6 +169,19 @@ test('un milisegundo después del fin acordado cuenta como retraso', () => {
   db.prepare("UPDATE reservas SET estado = 'DEVUELTA', devuelta_en = ? WHERE id = ?")
     .run(returnedAt, id);
   assert.equal(db.prepare('SELECT retraso FROM reservas WHERE id = ?').get(id).retraso, 1);
+});
+
+test('[HU-05][CP-030] devolver exactamente al fin acordado no cuenta como retraso', () => {
+  const student = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
+  const start = '2099-01-01T10:00:00Z';
+  const end = '2099-01-01T11:00:00Z';
+  const id = db.prepare(`
+    INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado)
+    VALUES (?, ?, ?, ?, 'APROBADA')
+  `).run(student.id, equipment[3].id, start, end).lastInsertRowid;
+  db.prepare("UPDATE reservas SET estado = 'DEVUELTA', devuelta_en = ? WHERE id = ?")
+    .run(end, id);
+  assert.equal(db.prepare('SELECT retraso FROM reservas WHERE id = ?').get(id).retraso, 0);
 });
 
 test.after(() => {

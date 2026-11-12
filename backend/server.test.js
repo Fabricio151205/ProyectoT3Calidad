@@ -10,7 +10,7 @@ process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
 const { db } = require('./db');
 const app = require('./server');
 
-test('la ruta Express consulta los equipos guardados en SQLite', () => {
+test('[HU-02][CP-007, CP-008] la ruta Express consulta los equipos guardados en SQLite', () => {
   const sesion = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
   const equipos = request('GET', '/api/equipos', {}, sesion).body;
   assert.equal(equipos.length, 18);
@@ -32,7 +32,7 @@ test('usuarios de prueba tienen roles y contraseñas cifradas', () => {
   assert.ok(usuarios.every((usuario) => /^scrypt:[0-9a-f]{32}:[0-9a-f]{128}$/.test(usuario.password_hash)));
 });
 
-test('reservas aprobadas respetan claves foráneas y no permiten cruces de equipo o estudiante', () => {
+test('[HU-03][Adicional] reservas aprobadas respetan claves foráneas y no permiten cruces de equipo o estudiante', () => {
   const usuario = db.prepare('SELECT id FROM usuarios LIMIT 1').get();
   const otroUsuario = db.prepare('SELECT id FROM usuarios WHERE id != ? LIMIT 1').get(usuario.id);
   const equipo = db.prepare('SELECT id FROM equipos LIMIT 1').get();
@@ -86,7 +86,7 @@ function reservationRequest(equipoId, fecha, horaInicio = '10:00', horaFin = '11
   return request('POST', '/api/reservas', { equipoId, fecha, horaInicio, horaFin }, cookie);
 }
 
-test('reserva válida queda pendiente, pertenece a la sesión y no presta el equipo', () => {
+test('[HU-03][CP-014] reserva válida queda pendiente, pertenece a la sesión y no presta el equipo', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const admin = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
@@ -104,7 +104,7 @@ test('reserva válida queda pendiente, pertenece a la sesión y no presta el equ
   assert.equal(request('GET', '/api/equipos', {}, studentCookie()).body.find((item) => item.id === equipment.id).estado, 'Disponible');
 });
 
-test('rechaza equipo inexistente y no disponible', () => {
+test('[HU-03][Adicional] rechaza equipo inexistente y no disponible', () => {
   assert.equal(reservationRequest(999999, futureDate(2)).status, 404);
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'ELEC-001'").get();
   db.prepare("UPDATE equipos SET estado = 'MANTENIMIENTO' WHERE id = ?").run(equipment.id);
@@ -115,7 +115,7 @@ test('rechaza equipo inexistente y no disponible', () => {
   }
 });
 
-test('rechaza fecha pasada, fecha inexistente y fin no posterior al inicio', () => {
+test('[HU-03][Adicional] rechaza fecha pasada, fecha inexistente y fin no posterior al inicio', () => {
   const equipment = db.prepare('SELECT id FROM equipos LIMIT 1').get();
   assert.equal(reservationRequest(equipment.id, '2020-01-01').status, 400);
   assert.equal(reservationRequest(equipment.id, '2027-02-30').status, 400);
@@ -123,7 +123,7 @@ test('rechaza fecha pasada, fecha inexistente y fin no posterior al inicio', () 
   assert.equal(reservationRequest(equipment.id, futureDate(3), '11:00', '11:00').status, 400);
 });
 
-test('rechaza cruce con reserva aprobada del mismo equipo', () => {
+test('[HU-03][CP-016] rechaza cruce con reserva aprobada del mismo equipo', () => {
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
   const other = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
   const date = futureDate(4);
@@ -134,7 +134,7 @@ test('rechaza cruce con reserva aprobada del mismo equipo', () => {
   assert.match(response.body.mensaje, /equipo.*reserva aprobada/i);
 });
 
-test('rechaza que el estudiante tenga otro equipo aprobado al mismo tiempo', () => {
+test('[HU-03][CP-018] rechaza que el estudiante tenga otro equipo aprobado al mismo tiempo', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
   const another = db.prepare("SELECT id FROM equipos WHERE codigo = 'RED-001'").get();
@@ -146,17 +146,19 @@ test('rechaza que el estudiante tenga otro equipo aprobado al mismo tiempo', () 
   assert.match(response.body.mensaje, /otro equipo reservado/i);
 });
 
-test('permite horario consecutivo y solicitudes pendientes superpuestas', () => {
+test('[HU-03][CP-017, CP-019] permite horarios posteriores a reservas finalizadas', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
   const date = futureDate(6);
   db.prepare("INSERT INTO reservas (usuario_id, equipo_id, inicio, fin, estado) VALUES (?, ?, ?, ?, 'APROBADA')")
     .run(student.id, equipment.id, utc(date, '10:00'), utc(date, '12:00'));
   assert.equal(reservationRequest(equipment.id, date, '12:00', '13:00').status, 201);
+  const anotherEquipment = db.prepare("SELECT id FROM equipos WHERE codigo = 'RED-001'").get();
+  assert.equal(reservationRequest(anotherEquipment.id, date, '12:00', '13:00').status, 201);
   assert.equal(reservationRequest(equipment.id, date, '12:30', '13:30').status, 201);
 });
 
-test('reserva y consulta propia requieren sesión de estudiante', () => {
+test('[HU-03][Adicional] reserva y consulta propia requieren sesión de estudiante', () => {
   const equipment = db.prepare('SELECT id FROM equipos LIMIT 1').get();
   assert.equal(reservationRequest(equipment.id, futureDate(7), '10:00', '11:00', '').status, 401);
   assert.equal(request('GET', '/api/mis-reservas').status, 401);
@@ -164,7 +166,7 @@ test('reserva y consulta propia requieren sesión de estudiante', () => {
   assert.equal(reservationRequest(equipment.id, futureDate(7), '10:00', '11:00', admin).status, 403);
 });
 
-test('mis reservas no muestra solicitudes ajenas', () => {
+test('[HU-03][Adicional] mis reservas no muestra solicitudes ajenas', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const other = db.prepare("SELECT id FROM usuarios WHERE codigo = 'ADM001'").get();
   const equipment = db.prepare('SELECT id FROM equipos LIMIT 1').get();
@@ -179,7 +181,7 @@ test('mis reservas no muestra solicitudes ajenas', () => {
   assert.ok(response.body.every((item) => item.id !== Number(alien.lastInsertRowid)));
 });
 
-test('catálogo filtra cada categoría exacta y valida parámetros', () => {
+test('[HU-02][CP-009, CP-010, CP-011] catálogo filtra cada categoría exacta', () => {
   const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
   for (const categoria of ['Cómputo', 'Electrónica', 'Redes']) {
     const response = request('GET', '/api/equipos', {}, cookie, { categoria });
@@ -194,11 +196,11 @@ test('catálogo filtra cada categoría exacta y valida parámetros', () => {
   assert.equal(request('GET', '/api/equipos').status, 401);
 });
 
-test('categoría sin equipos devuelve lista vacía', () => {
+test('[HU-02][CP-012] categoría sin equipos devuelve lista vacía', () => {
   const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
   db.exec('SAVEPOINT catalogo_vacio');
   try {
-    db.prepare("DELETE FROM equipos WHERE categoria = 'Redes'").run();
+    db.prepare("UPDATE equipos SET estado = 'MANTENIMIENTO' WHERE categoria = 'Redes'").run();
     const response = request('GET', '/api/equipos', {}, cookie, { categoria: 'Redes' });
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, []);
@@ -207,7 +209,7 @@ test('categoría sin equipos devuelve lista vacía', () => {
   }
 });
 
-test('reserva aprobada vigente aparece como Prestado y vuelve a Disponible después', () => {
+test('[HU-02][CP-008] reserva vigente refleja el estado Prestado en el catálogo', () => {
   const cookie = request('POST', '/api/auth/login', { codigo: '20240001', password: 'Estudiante123!' }).cookie;
   const usuario = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipo = db.prepare("SELECT id FROM equipos WHERE codigo = 'COMP-001'").get();
@@ -228,7 +230,7 @@ test('reserva aprobada vigente aparece como Prestado y vuelve a Disponible despu
   }
 });
 
-test('inicio de sesión correcto y reinicio del contador', () => {
+test('[HU-01][CP-001, CP-003] inicio de sesión correcto y rechazo de contraseña incorrecta', () => {
   const bad = request('POST', '/api/auth/login', { codigo: '20240001', password: 'incorrecta' });
   assert.equal(bad.status, 401);
   assert.equal(bad.body.mensaje, 'Credenciales inválidas');
@@ -240,14 +242,22 @@ test('inicio de sesión correcto y reinicio del contador', () => {
   assert.equal(request('GET', '/api/auth/me', {}, good.cookie).body.usuario.codigo, '20240001');
 });
 
-test('usuario inexistente recibe mensaje genérico', () => {
+test('[HU-01][CP-004] inicio de sesión con campos vacíos es rechazado', () => {
+  for (const body of [{}, { codigo: '', password: '' }, { codigo: '20240001', password: '' }]) {
+    const response = request('POST', '/api/auth/login', body);
+    assert.equal(response.status, 401);
+    assert.equal(response.body.mensaje, 'Credenciales inválidas');
+  }
+});
+
+test('[HU-01][CP-002] usuario inexistente recibe mensaje genérico', () => {
   const response = request('POST', '/api/auth/login', { codigo: 'NO_EXISTE', password: 'incorrecta' });
   assert.equal(response.status, 401);
   assert.equal(response.body.mensaje, 'Credenciales inválidas');
   assert.equal(db.prepare("SELECT count(*) AS total FROM intentos_login WHERE codigo = 'NO_EXISTE'").get().total, 1);
 });
 
-test('tres intentos fallidos bloquean temporalmente la cuenta', () => {
+test('[HU-01][CP-005, CP-006] tres intentos fallidos bloquean temporalmente la cuenta', () => {
   const existingSession = studentCookie();
   for (let i = 1; i <= 3; i++) {
     const response = request('POST', '/api/auth/login', { codigo: '20240001', password: 'incorrecta' });
@@ -267,7 +277,7 @@ test('tres intentos fallidos bloquean temporalmente la cuenta', () => {
   assert.equal(db.prepare("SELECT intentos_fallidos FROM usuarios WHERE codigo = '20240001'").get().intentos_fallidos, 1);
 });
 
-test('devolución tardía registra retraso y penaliza al estudiante', () => {
+test('[HU-05][CP-029] devolución tardía registra retraso y penaliza al estudiante', () => {
   const student = db.prepare("SELECT id FROM usuarios WHERE codigo = '20240001'").get();
   const equipo = db.prepare('SELECT id FROM equipos LIMIT 1').get();
   const reserva = db.prepare(`
@@ -280,7 +290,7 @@ test('devolución tardía registra retraso y penaliza al estudiante', () => {
   assert.equal(db.prepare('SELECT estado_estudiante FROM usuarios WHERE id = ?').get(student.id).estado_estudiante, 'PENALIZADO');
 });
 
-test('administrador accede a ruta administrativa; estudiante y anónimo no', () => {
+test('[HU-04][Adicional] administrador accede a rutas administrativas; estudiante y anónimo no', () => {
   const admin = request('POST', '/api/auth/login', { codigo: 'ADM001', password: 'Admin123!' });
   assert.equal(admin.status, 200);
   assert.equal(admin.body.usuario.rol, 'ADMINISTRADOR');

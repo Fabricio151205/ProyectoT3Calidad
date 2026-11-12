@@ -63,7 +63,7 @@ function reject(id, motivo, cookie = adminCookie) {
   return request('PATCH', '/api/admin/reservas/:id/rechazar', { motivo }, cookie, { id: String(id) });
 }
 
-test('solo administrador puede consultar y decidir solicitudes', () => {
+test('[HU-04][Adicional] solo administrador puede consultar y decidir solicitudes', () => {
   const id = pending(studentId, equipment[0].id, date(1));
   assert.equal(request('GET', '/api/admin/reservas').status, 401);
   assert.equal(request('GET', '/api/admin/reservas', {}, studentCookie).status, 403);
@@ -73,7 +73,7 @@ test('solo administrador puede consultar y decidir solicitudes', () => {
   assert.equal(db.prepare('SELECT estado FROM reservas WHERE id = ?').get(id).estado, 'PENDIENTE');
 });
 
-test('lista pendiente incluye datos del estudiante, equipo y horario de Lima', () => {
+test('[HU-04][CP-020] lista pendiente incluye los datos de solicitud y horario', () => {
   const day = date(2);
   const id = pending(studentId, equipment[0].id, day, '09:00', '10:00');
   const result = request('GET', '/api/admin/reservas', {}, adminCookie);
@@ -87,7 +87,7 @@ test('lista pendiente incluye datos del estudiante, equipo y horario de Lima', (
   assert.ok(result.body.every((item) => item.estado === 'PENDIENTE'));
 });
 
-test('aprueba pendiente y la elimina del listado; no permite decidirla otra vez', () => {
+test('[HU-04][CP-021] aprueba una solicitud pendiente y actualiza el listado', () => {
   const id = pending(studentId, equipment[0].id, date(3));
   const result = approve(id);
   assert.equal(result.status, 200);
@@ -100,7 +100,7 @@ test('aprueba pendiente y la elimina del listado; no permite decidirla otra vez'
   assert.equal(reject(id, 'Tarde').status, 409);
 });
 
-test('rechaza solicitudes incompatibles del mismo equipo con HTTP 409', () => {
+test('[HU-04][Adicional] rechaza solicitudes incompatibles del mismo equipo', () => {
   const day = date(4);
   const first = pending(studentId, equipment[0].id, day, '10:00', '12:00');
   const second = pending(otherId, equipment[0].id, day, '11:00', '13:00');
@@ -111,7 +111,7 @@ test('rechaza solicitudes incompatibles del mismo equipo con HTTP 409', () => {
   assert.equal(db.prepare('SELECT estado FROM reservas WHERE id = ?').get(second).estado, 'PENDIENTE');
 });
 
-test('rechaza segunda reserva aprobada simultánea del estudiante', () => {
+test('[HU-04][Adicional] rechaza segunda reserva aprobada simultánea del estudiante', () => {
   const day = date(5);
   const first = pending(studentId, equipment[0].id, day, '10:00', '12:00');
   const second = pending(studentId, equipment[1].id, day, '11:00', '13:00');
@@ -121,7 +121,7 @@ test('rechaza segunda reserva aprobada simultánea del estudiante', () => {
   assert.match(conflict.body.mensaje, /estudiante/i);
 });
 
-test('permite aprobaciones consecutivas sin cruce', () => {
+test('[HU-04][Adicional] permite aprobaciones consecutivas sin cruce', () => {
   const day = date(6);
   const first = pending(studentId, equipment[0].id, day, '10:00', '12:00');
   const second = pending(studentId, equipment[0].id, day, '12:00', '13:00');
@@ -129,7 +129,7 @@ test('permite aprobaciones consecutivas sin cruce', () => {
   assert.equal(approve(second).status, 200);
 });
 
-test('rechazo exige motivo, lo recorta y modifica solo la solicitud elegida', () => {
+test('[HU-04][CP-022, CP-023] rechazo exige motivo y modifica solo la solicitud elegida', () => {
   const day = date(7);
   const first = pending(studentId, equipment[0].id, day);
   const second = pending(otherId, equipment[1].id, day);
@@ -144,13 +144,13 @@ test('rechazo exige motivo, lo recorta y modifica solo la solicitud elegida', ()
   assert.equal(approve(first).status, 409);
 });
 
-test('ID inexistente o inválido devuelve error sin cambios', () => {
+test('[HU-04][Adicional] ID inexistente o inválido devuelve error sin cambios', () => {
   assert.equal(approve(999999).status, 404);
   assert.equal(reject(999999, 'Motivo').status, 404);
   assert.equal(approve('x').status, 400);
 });
 
-test('aprobar una reserva vigente refleja Prestado en el catálogo horario', () => {
+test('[HU-04][CP-024] aprobar una reserva vigente refleja Prestado en el catálogo', () => {
   const start = new Date(Date.now() - 3_600_000).toISOString().slice(0, 19) + 'Z';
   const end = new Date(Date.now() + 3_600_000).toISOString().slice(0, 19) + 'Z';
   const id = Number(db.prepare('INSERT INTO reservas (usuario_id, equipo_id, inicio, fin) VALUES (?, ?, ?, ?)')
