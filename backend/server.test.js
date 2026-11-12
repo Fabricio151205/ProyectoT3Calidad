@@ -14,6 +14,50 @@ process.env.DB_PATH = path.join(testDirectory, 'test.sqlite');
 const { db, hashPassword } = require('./db');
 const app = require('./server');
 
+test('[Seguridad] Express no revela X-Powered-By en respuestas HTTP', async () => {
+  const server = app.listen(0, '127.0.0.1');
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('listening', resolve);
+      server.once('error', reject);
+    });
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const check = async (route, options) => {
+      const response = await fetch(base + route, options);
+      assert.equal(response.headers.get('x-powered-by'), null, route);
+      return response;
+    };
+    const health = await check('/api/health');
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).estado, 'OK');
+    assert.equal((await check('/api/equipos')).status, 401);
+    assert.equal((await check('/api/reservas', { method: 'POST' })).status, 401);
+    assert.equal((await check('/api/admin/reservas')).status, 401);
+
+    const studentLogin = await check('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: '20240001', password: studentPassword }),
+    });
+    assert.equal(studentLogin.status, 200);
+    const studentCookie = studentLogin.headers.get('set-cookie')?.split(';')[0];
+    assert.ok(studentCookie);
+    assert.equal((await check('/api/equipos', { headers: { Cookie: studentCookie } })).status, 200);
+    assert.equal((await check('/api/mis-reservas', { headers: { Cookie: studentCookie } })).status, 200);
+    assert.equal((await check('/api/admin/reservas', { headers: { Cookie: studentCookie } })).status, 403);
+
+    const adminLogin = await check('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: 'ADM001', password: adminPassword }),
+    });
+    assert.equal(adminLogin.status, 200);
+    const adminCookie = adminLogin.headers.get('set-cookie')?.split(';')[0];
+    assert.ok(adminCookie);
+    assert.equal((await check('/api/admin/reservas', { headers: { Cookie: adminCookie } })).status, 200);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('[HU-02][CP-007, CP-008] la ruta Express consulta los equipos guardados en SQLite', () => {
   const sesion = request('POST', '/api/auth/login', { codigo: '20240001', password: studentPassword }).cookie;
   const equipos = request('GET', '/api/equipos', {}, sesion).body;

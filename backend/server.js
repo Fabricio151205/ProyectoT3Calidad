@@ -7,6 +7,7 @@ const { createReservation, listMyReservations } = require('./reservations');
 const { listPending, listActive, approve, reject, registerReturn } = require('./adminReservations');
 
 const app = express();
+app.disable('x-powered-by');
 const PORT = Number(process.env.PORT || 3000);
 
 if (process.env.CORS_ORIGIN) {
