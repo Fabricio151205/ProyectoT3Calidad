@@ -4,6 +4,14 @@ Este catálogo integra los 30 casos del informe de pruebas de LabTrack y los vin
 
 **Ejecución automatizada:** desde `backend`, ejecutar `npm test`. Las pruebas usan bases SQLite temporales. `Automatizado` indica que el escenario funcional tiene una prueba automatizada; `Parcial` indica que el API está probado, pero falta verificar la interfaz; `Manual` requiere interacción visual o una herramienta externa. La cobertura se refiere al escenario probado, no a una certificación de toda la historia.
 
+## Importar los casos a TestLink
+
+1. Desde esta carpeta `backend`, ejecutar `npm run qa:testlink:export`. Esto genera `qa/testlink-import.xml` a partir de las tablas de este documento, agrupando los casos por HU y conservando ID, tipo, cobertura y resultado esperado.
+2. En TestLink, crear o abrir el proyecto de pruebas LabTrack y usar la opción de importar casos de prueba desde XML en el árbol de especificaciones.
+3. Seleccionar `backend/qa/testlink-import.xml`. TestLink creará una suite por historia de usuario y un caso por cada CP-001–CP-030. Los casos se importan como ejecución manual; la columna Cobertura indica si hay una prueba automatizada vinculada en el backend.
+
+La importación incorpora un paso general por caso con el resultado esperado; no reemplaza los pasos detallados del informe ni registra ejecuciones automáticamente. El proyecto no contiene instancia, credenciales ni plan/build de TestLink configurados. Las ejecuciones automatizadas se verifican actualmente con `npm test`.
+
 ## HU-01 — Autenticación segura
 
 | ID | Caso | Tipo | Resultado esperado | Cobertura |

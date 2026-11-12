@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",
-    "qa:flow": "node qa/full-flow.js"
+    "qa:flow": "node qa/full-flow.js",
+    "qa:testlink:export": "node qa/export-testlink.js"
   },
   "keywords": [],
   "author": "",

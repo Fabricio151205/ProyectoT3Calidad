@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LabTrack">
+  <node_order><![CDATA[1]]></node_order>
+  <details><![CDATA[<p>Casos de prueba organizados por historia de usuario.</p>]]></details>
+  <testsuite name="HU-01 - Autenticación segura">
+    <node_order><![CDATA[7]]></node_order>
+    <details><![CDATA[<p>Casos de prueba de HU-01.</p>]]></details>
+  <testcase name="CP-001 - Iniciar sesión con credenciales válidas">
+    <node_order><![CDATA[1]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Iniciar sesión con credenciales válidas.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se autentica al estudiante y se establece una sesión.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-002 - Iniciar sesión con un código inexistente">
+    <node_order><![CDATA[2]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Iniciar sesión con un código inexistente.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se deniega el acceso con un mensaje genérico de credenciales inválidas.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-003 - Iniciar sesión con contraseña incorrecta">
+    <node_order><![CDATA[3]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Iniciar sesión con contraseña incorrecta.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se deniega el acceso.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-004 - Enviar el formulario con campos vacíos">
+    <node_order><![CDATA[4]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Parcial — API en `server.test.js`; falta validar el formulario visualmente..</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Enviar el formulario con campos vacíos.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La interfaz requiere los campos; el API rechaza los datos vacíos.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-005 - Fallar tres inicios de sesión consecutivos">
+    <node_order><![CDATA[5]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Fallar tres inicios de sesión consecutivos.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La cuenta queda bloqueada temporalmente al tercer intento.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-006 - Iniciar sesión mientras la cuenta está bloqueada">
+    <node_order><![CDATA[6]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Seguridad. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-01.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Iniciar sesión mientras la cuenta está bloqueada.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El acceso se mantiene denegado hasta que expire el bloqueo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  </testsuite>
+  <testsuite name="HU-02 - Catálogo y filtrado de equipos">
+    <node_order><![CDATA[14]]></node_order>
+    <details><![CDATA[<p>Casos de prueba de HU-02.</p>]]></details>
+  <testcase name="CP-007 - Visualizar el catálogo">
+    <node_order><![CDATA[7]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Visualizar el catálogo.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se muestra el catálogo de equipos registrados.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-008 - Verificar los datos de los equipos">
+    <node_order><![CDATA[8]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Verificar los datos de los equipos.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Cada equipo expone nombre, código, categoría e información de disponibilidad.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-009 - Filtrar por Cómputo">
+    <node_order><![CDATA[9]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Filtrar por Cómputo.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Solo aparecen equipos de Cómputo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-010 - Filtrar por Electrónica">
+    <node_order><![CDATA[10]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Filtrar por Electrónica.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Solo aparecen equipos de Electrónica.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-011 - Filtrar por Redes">
+    <node_order><![CDATA[11]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Filtrar por Redes.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Solo aparecen equipos de Redes.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-012 - Filtrar una categoría sin equipos">
+    <node_order><![CDATA[12]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Filtrar una categoría sin equipos.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El catálogo devuelve una lista vacía.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-013 - Consultar el catálogo con usuarios concurrentes">
+    <node_order><![CDATA[13]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Rendimiento. Cobertura: Manual — JMeter; el informe propone 50 usuarios por 60 segundos, pero no define umbrales de aceptación..</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-02.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Consultar el catálogo con usuarios concurrentes.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Las consultas concurrentes no provocan errores ni resultados inconsistentes.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  </testsuite>
+  <testsuite name="HU-03 - Reserva de equipos">
+    <node_order><![CDATA[20]]></node_order>
+    <details><![CDATA[<p>Casos de prueba de HU-03.</p>]]></details>
+  <testcase name="CP-014 - Reservar un equipo disponible con horario válido">
+    <node_order><![CDATA[14]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Reservar un equipo disponible con horario válido.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se registra una solicitud pendiente con el equipo y horario elegidos.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-015 - Intentar reservar un equipo que aparece prestado">
+    <node_order><![CDATA[15]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Manual — requiere comprobar la interacción del catálogo; el API no prueba la interfaz..</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Intentar reservar un equipo que aparece prestado.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La interfaz impide seleccionar el equipo durante el préstamo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-016 - Reservar un equipo en un horario que se cruza con otra aprobada">
+    <node_order><![CDATA[16]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Reservar un equipo en un horario que se cruza con otra aprobada.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se rechaza la solicitud en conflicto.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-017 - Reservar un equipo después de una reserva existente">
+    <node_order><![CDATA[17]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Reservar un equipo después de una reserva existente.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se permite el horario consecutivo, sin superposición.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-018 - Reservar dos equipos simultáneamente como el mismo estudiante">
+    <node_order><![CDATA[18]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Reservar dos equipos simultáneamente como el mismo estudiante.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se rechaza la segunda reserva que se superpone.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-019 - Reservar otro equipo después de que finalice la reserva anterior">
+    <node_order><![CDATA[19]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `server.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-03.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Reservar otro equipo después de que finalice la reserva anterior.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se permite la nueva solicitud posterior.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  </testsuite>
+  <testsuite name="HU-04 - Gestión de solicitudes del administrador">
+    <node_order><![CDATA[25]]></node_order>
+    <details><![CDATA[<p>Casos de prueba de HU-04.</p>]]></details>
+  <testcase name="CP-020 - Ver las solicitudes pendientes">
+    <node_order><![CDATA[20]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `adminReservations.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-04.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Ver las solicitudes pendientes.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El administrador ve estudiante, equipo y horario de cada solicitud.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-021 - Aprobar una solicitud pendiente">
+    <node_order><![CDATA[21]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `adminReservations.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-04.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Aprobar una solicitud pendiente.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La solicitud cambia a Aprobada y deja la lista de pendientes.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-022 - Rechazar una solicitud con justificación">
+    <node_order><![CDATA[22]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `adminReservations.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-04.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Rechazar una solicitud con justificación.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La solicitud queda Rechazada y conserva el motivo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-023 - Rechazar una solicitud sin justificación">
+    <node_order><![CDATA[23]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `adminReservations.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-04.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Rechazar una solicitud sin justificación.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se impide el rechazo y se solicita un motivo válido.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-024 - Verificar el estado del equipo tras aprobar una reserva vigente">
+    <node_order><![CDATA[24]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `adminReservations.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-04.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Verificar el estado del equipo tras aprobar una reserva vigente.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El catálogo muestra el equipo como Prestado durante el préstamo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  </testsuite>
+  <testsuite name="HU-05 - Devolución y penalización automática">
+    <node_order><![CDATA[31]]></node_order>
+    <details><![CDATA[<p>Casos de prueba de HU-05.</p>]]></details>
+  <testcase name="CP-025 - Buscar una reserva activa">
+    <node_order><![CDATA[25]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Parcial — `returns.test.js` prueba el listado del API; la búsqueda en la interfaz es manual..</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Buscar una reserva activa.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El administrador encuentra la reserva por datos del estudiante o equipo.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-026 - Registrar la devolución de un equipo">
+    <node_order><![CDATA[26]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Registrar la devolución de un equipo.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La reserva cambia a Devuelta y se conserva en el historial.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-027 - Verificar disponibilidad después de la devolución">
+    <node_order><![CDATA[27]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Verificar disponibilidad después de la devolución.</p>]]></actions>
+        <expectedresults><![CDATA[<p>El equipo vuelve a mostrarse Disponible.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-028 - Devolver antes de la hora de fin acordada">
+    <node_order><![CDATA[28]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Positiva. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Devolver antes de la hora de fin acordada.</p>]]></actions>
+        <expectedresults><![CDATA[<p>La devolución se registra sin aplicar penalización.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-029 - Devolver después de la hora de fin acordada">
+    <node_order><![CDATA[29]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Negativa. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Devolver después de la hora de fin acordada.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se registra el retraso y se penaliza al estudiante.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="CP-030 - Devolver exactamente a la hora de fin acordada">
+    <node_order><![CDATA[30]]></node_order>
+    <version><![CDATA[1]]></version>
+    <summary><![CDATA[<p>Tipo: Límite. Cobertura: Automatizado — `returns.test.js`.</p>]]></summary>
+    <preconditions><![CDATA[<p>Historia de usuario HU-05.</p>]]></preconditions>
+    <execution_type><![CDATA[1]]></execution_type>
+    <importance><![CDATA[2]]></importance>
+    <steps>
+      <step>
+        <step_number><![CDATA[1]]></step_number>
+        <actions><![CDATA[<p>Ejecutar el escenario: Devolver exactamente a la hora de fin acordada.</p>]]></actions>
+        <expectedresults><![CDATA[<p>Se registra la devolución sin considerarla tardía.</p>]]></expectedresults>
+        <execution_type><![CDATA[1]]></execution_type>
+      </step>
+    </steps>
+  </testcase>
+  </testsuite>
+</testsuite>
