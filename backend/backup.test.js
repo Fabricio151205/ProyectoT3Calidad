@@ -76,6 +76,15 @@ test('rechaza nombres de archivo no permitidos sin crear archivos', () => {
   }
 });
 
+test('rechaza nombres con sintaxis de URI o parámetros de conexión', () => {
+  for (const name of ['file:otro.sqlite?mode=ro', 'otro.sqlite?cache=shared',
+    'otro.sqlite#fragmento', ':memory:']) {
+    const destination = path.join(backupDir, name);
+    assert.notEqual(backup(destination).status, 0, name);
+    assert.equal(existsSync(destination), false, name);
+  }
+});
+
 test('rechaza un directorio autorizado que sea enlace simbólico', (t) => {
   const linkedDir = path.join(directory, 'linked');
   try {
